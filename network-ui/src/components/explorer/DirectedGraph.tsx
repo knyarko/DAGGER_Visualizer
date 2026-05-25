@@ -367,8 +367,10 @@ export default function DirectedGraph({
         const srcId = typeof l.source === 'string' ? l.source : l.source.id;
         const tgtId = typeof l.target === 'string' ? l.target : l.target.id;
         const lines: string[] = [`<strong>${escapeHTML(srcId)} → ${escapeHTML(tgtId)}</strong>`];
-        if (l.label) lines.push(escapeHTML(l.label));
-        if (mapping.edgeWeightField) lines.push(`${escapeHTML(mapping.edgeWeightField)}: ${l.weight}`);
+        if (l.label && mapping.edgeLabelField) {
+          lines.push(`<em style="color:#9ca3af">${escapeHTML(mapping.edgeLabelField)}:</em> <strong>${escapeHTML(l.label)}</strong>`);
+        }
+        if (mapping.edgeWeightField) lines.push(`<em style="color:#9ca3af">${escapeHTML(mapping.edgeWeightField)}:</em> ${l.weight}`);
 
         const skip = new Set([mapping.sourceField, mapping.targetField, mapping.edgeLabelField].filter(Boolean) as string[]);
         const shown = new Set<string>();
