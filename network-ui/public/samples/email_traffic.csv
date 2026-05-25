@@ -1,0 +1,21 @@
+sender,recipient,subject,date,department,size_kb,priority
+alice@corp.com,bob@corp.com,Q3 projections,2024-01-15,Finance,42,high
+alice@corp.com,carol@corp.com,Q3 projections,2024-01-15,Finance,42,high
+bob@corp.com,alice@corp.com,Re: Q3 projections,2024-01-16,Finance,18,high
+carol@corp.com,dave@corp.com,Marketing budget,2024-01-17,Marketing,73,medium
+dave@corp.com,carol@corp.com,Re: Marketing budget,2024-01-18,Marketing,22,medium
+eve@corp.com,alice@corp.com,Hiring update,2024-02-01,HR,15,low
+alice@corp.com,eve@corp.com,Re: Hiring update,2024-02-01,HR,9,low
+frank@corp.com,bob@corp.com,Server migration plan,2024-02-05,Engineering,210,high
+bob@corp.com,frank@corp.com,Re: Server migration plan,2024-02-06,Engineering,33,high
+frank@corp.com,grace@corp.com,Server migration plan,2024-02-05,Engineering,210,high
+grace@corp.com,frank@corp.com,Re: Server migration plan,2024-02-07,Engineering,28,high
+alice@corp.com,frank@corp.com,Quarterly review,2024-02-10,Finance,55,medium
+carol@corp.com,alice@corp.com,Lunch?,2024-02-12,Marketing,3,low
+dave@corp.com,eve@corp.com,New role proposal,2024-02-15,HR,40,medium
+eve@corp.com,dave@corp.com,Re: New role proposal,2024-02-16,HR,12,medium
+bob@corp.com,grace@corp.com,Code review,2024-02-20,Engineering,8,low
+grace@corp.com,bob@corp.com,Re: Code review,2024-02-21,Engineering,11,low
+alice@corp.com,dave@corp.com,Strategy sync,2024-03-01,Finance,30,high
+dave@corp.com,alice@corp.com,Re: Strategy sync,2024-03-02,Marketing,25,high
+frank@corp.com,alice@corp.com,Infra costs,2024-03-05,Engineering,17,medium

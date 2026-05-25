@@ -1,0 +1,21 @@
+attacker,defender,battle_type,year,region,attacker_size,defender_size,outcome,commander
+House Lannister,House Tully,pitched battle,298,The Riverlands,15000,4000,win,Jaime Lannister
+House Stark,House Lannister,pitched battle,298,The Riverlands,18000,20000,win,Robb Stark
+House Stark,House Lannister,ambush,298,The Riverlands,6000,12625,win,Robb Stark
+House Lannister,House Stark,siege,299,The Westerlands,20000,10000,loss,Stafford Lannister
+House Greyjoy,House Stark,raid,299,The North,264,900,win,Theon Greyjoy
+House Greyjoy,House Stark,siege,299,The North,2000,2000,win,Theon Greyjoy
+House Stark,House Greyjoy,siege,299,The North,1875,1100,win,Ramsay Bolton
+House Baratheon,House Stark,pitched battle,299,The Crownlands,5000,20000,win,Stannis Baratheon
+House Baratheon,House Lannister,pitched battle,299,The Crownlands,21000,7250,loss,Stannis Baratheon
+House Tyrell,House Baratheon,pitched battle,299,The Crownlands,60000,21000,win,Mace Tyrell
+House Lannister,House Stark,ambush,299,The Riverlands,6000,6000,win,Gregor Clegane
+House Tully,House Lannister,siege,299,The Riverlands,3000,10000,loss,Brynden Tully
+House Stark,House Lannister,pitched battle,299,The Westerlands,6000,2000,win,Robb Stark
+House Bolton,House Stark,massacre,299,The Riverlands,3500,3500,win,Roose Bolton
+House Frey,House Stark,massacre,299,The Riverlands,4000,3500,win,Walder Frey
+House Tyrell,House Florent,siege,300,The Reach,1000,200,win,Randyll Tarly
+Free Folk,Night's Watch,siege,300,Beyond the Wall,100000,1240,loss,Mance Rayder
+House Bolton,House Stark,siege,300,The North,5000,1300,win,Ramsay Bolton
+House Targaryen,Slaver's Bay,siege,299,Essos,8000,7000,win,Daenerys Targaryen
+House Targaryen,Slaver's Bay,siege,299,Essos,10000,7000,win,Daenerys Targaryen
