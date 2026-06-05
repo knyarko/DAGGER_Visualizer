@@ -536,13 +536,19 @@ export default function DirectedGraph({
       return interactiveNodes.has(sId) && interactiveNodes.has(tId);
     };
 
+    // Node circles: dim everything outside the focus subnetwork (chain mode
+    // OR selected+neighbours in plain selection). When nothing is selected,
+    // interactiveNodes is null so all nodes stay at full opacity.
     svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
       .attr('stroke', d => d.id === selectedNode ? '#06b6d4' : '#fff')
       .attr('stroke-width', d => d.id === selectedNode ? 3 : 1)
-      .attr('opacity', d => nodeInHighlight(d.id) ? 1 : 0.12);
+      .attr('opacity', d => isNodeInteractive(d.id) ? 1 : 0.12);
 
+    // Node labels: hide entirely on out-of-focus nodes (display:none rather
+    // than just fading), so the focused subnetwork's labels read cleanly
+    // without leftover ghost text from the background.
     svg.selectAll<SVGTextElement, Node>('g.nodes g text')
-      .attr('opacity', d => nodeInHighlight(d.id) ? 1 : 0.15);
+      .style('display', d => isNodeInteractive(d.id) ? null : 'none');
 
     // Disable pointer events on nodes outside the interactive subnetwork
     // (chain highlight set OR selected node + direct neighbours). This stops
@@ -580,15 +586,15 @@ export default function DirectedGraph({
       })
       .style('pointer-events', l => isLinkInteractive(l) ? null : 'none');
 
-    // Edge labels — hide entirely when any node/chain is selected so the
-    // labels don't pile on top of the focused subnetwork. Exception: edges
-    // that are part of the active chain keep their labels so you can read
-    // the path "A → causes → B → causes → C" inline. Reverts to default
-    // visibility automatically when selection is cleared.
+    // Edge labels — visibility follows the focus subnetwork. When a node is
+    // selected, only labels for edges touching the focus (the active chain
+    // OR edges between selected+neighbour nodes) stay visible; everything
+    // else is fully hidden. Reverts to default on deselection.
     svg.selectAll<SVGTextElement, Link>('g.edge-labels text')
       .style('display', l => {
         if (!selectedNode) return null;        // no selection → show per user's mode
         if (isLinkInChain(l)) return null;     // chain edges keep their label
+        if (isLinkInteractive(l)) return null; // edges in focus subnetwork keep theirs
         return 'none';                          // everything else hidden
       })
       .attr('opacity', l => {
