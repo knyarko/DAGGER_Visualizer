@@ -580,8 +580,17 @@ export default function DirectedGraph({
       })
       .style('pointer-events', l => isLinkInteractive(l) ? null : 'none');
 
-    // Edge labels visibility follows the link
+    // Edge labels — hide entirely when any node/chain is selected so the
+    // labels don't pile on top of the focused subnetwork. Exception: edges
+    // that are part of the active chain keep their labels so you can read
+    // the path "A → causes → B → causes → C" inline. Reverts to default
+    // visibility automatically when selection is cleared.
     svg.selectAll<SVGTextElement, Link>('g.edge-labels text')
+      .style('display', l => {
+        if (!selectedNode) return null;        // no selection → show per user's mode
+        if (isLinkInChain(l)) return null;     // chain edges keep their label
+        return 'none';                          // everything else hidden
+      })
       .attr('opacity', l => {
         if (isLinkInChain(l)) return 1;
         if (highlightedNodes) return linkInHighlight(l) ? 0.9 : 0.05;
