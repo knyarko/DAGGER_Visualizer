@@ -118,6 +118,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   // Visual layout: spread is a multiplier on link distance + charge repulsion.
   // 1.0 = packed default; higher values pull dense clusters apart.
   const [spread, setSpread] = useState(1.0);
+  // 'auto' uses a density cap (≤500 edges → show); 'on'/'off' are manual overrides.
+  const [edgeLabelMode, setEdgeLabelMode] = useState<'auto' | 'on' | 'off'>('auto');
 
   const dataset = useMemo(() => {
     if (!options || !selectedOptionId) return null;
@@ -356,6 +358,31 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                 <span>spread out</span>
               </div>
             </div>
+
+            <div className={`mt-2 rounded p-2 ${edgeLabelMode !== 'auto' ? 'bg-blue-950/30 border border-blue-900' : 'bg-gray-800/40'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-gray-300">Edge labels</span>
+                <span className="text-[10px] text-gray-500">{edgeLabelMode}</span>
+              </div>
+              <div className="flex rounded overflow-hidden border border-gray-700">
+                {(['auto', 'on', 'off'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setEdgeLabelMode(mode)}
+                    className={`flex-1 py-1 text-[11px] transition-colors ${
+                      edgeLabelMode === mode
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[9px] text-gray-500 mt-1">
+                auto: hide when &gt;500 edges
+              </div>
+            </div>
           </div>
 
           {/* Topology filter: K-core decomposition */}
@@ -419,6 +446,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           highlightedNodes={highlightedNodes}
           highlightedEdgeKeys={highlightedEdgeKeys}
           spread={spread}
+          edgeLabelMode={edgeLabelMode}
         />
       </main>
 

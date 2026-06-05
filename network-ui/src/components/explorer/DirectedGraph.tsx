@@ -16,6 +16,13 @@ interface Props {
   highlightedEdgeKeys?: Set<string> | null;
   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
   spread?: number;
+  /**
+   * Edge label visibility mode.
+   *   · 'auto' — show when total edge count ≤ density cap, hide otherwise
+   *   · 'on'   — always show (respects density cap warnings but renders anyway)
+   *   · 'off'  — never show
+   */
+  edgeLabelMode?: 'auto' | 'on' | 'off';
 }
 
 // Baseline force constants — multiplied by the `spread` prop at render time.
@@ -83,6 +90,7 @@ export default function DirectedGraph({
   highlightedNodes = null,
   highlightedEdgeKeys = null,
   spread = 1.0,
+  edgeLabelMode = 'auto',
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   // Stable handle to the running simulation so we can retune forces without
@@ -257,12 +265,18 @@ export default function DirectedGraph({
       .attr('marker-end', 'url(#arrow)');
 
     // Edge labels — drawn at the midpoint and rotated to follow the edge.
-    // Hidden when no edge-label field is selected, or when the graph is too
-    // dense (>EDGE_LABEL_DENSITY_CAP edges) to keep the rendering readable.
+    // Visibility is the AND of:
+    //   · a label field is mapped and some links actually have text
+    //   · mode allows it (auto = density cap, on = always, off = never)
     const EDGE_LABEL_DENSITY_CAP = 500;
-    const showEdgeLabels = !!mapping.edgeLabelField &&
-      graph.links.some(l => l.label) &&
-      graph.links.length <= EDGE_LABEL_DENSITY_CAP;
+    const labelsAvailable = !!mapping.edgeLabelField && graph.links.some(l => l.label);
+    const showEdgeLabels = labelsAvailable && (
+      edgeLabelMode === 'on'
+        ? true
+        : edgeLabelMode === 'off'
+          ? false
+          : graph.links.length <= EDGE_LABEL_DENSITY_CAP
+    );
 
     const labelSel = showEdgeLabels
       ? g.append('g')
@@ -588,9 +602,9 @@ export default function DirectedGraph({
         <div className="text-gray-400">
           {graph.nodes.length} nodes · {graph.links.length} edges
         </div>
-        {mapping.edgeLabelField && graph.links.length > 500 && (
+        {mapping.edgeLabelField && edgeLabelMode === 'auto' && graph.links.length > 500 && (
           <div className="text-amber-400/80 text-[10px] mt-1">
-            edge labels hidden ({'>'}500 edges) — narrow the graph with filters
+            edge labels auto-hidden ({'>'}500 edges) — toggle "on" in Layout to force
           </div>
         )}
         {legendItems.length > 0 && (
