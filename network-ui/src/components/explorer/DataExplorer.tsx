@@ -6,6 +6,7 @@ import DirectedGraph from './DirectedGraph';
 import type { DatasetOption } from '../../lib/parseData';
 import { suggestMapping, type FilterMap, type VisualMapping } from '../../lib/mapping';
 import { enumerateChains, reachableWithin, chainToEdgeKeys } from '../../lib/chains';
+import { buildLabel, BUILD_SHA_FULL, BUILD_TIME } from '../../lib/buildInfo';
 
 const CHAIN_MAX_PATHS = 200;
 
@@ -255,6 +256,12 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           </div>
           <div className="text-xs text-gray-400 truncate" title={sourceFileName}>
             📄 {sourceFileName}
+          </div>
+          <div
+            className="text-[9px] text-gray-600 font-mono mt-0.5 truncate"
+            title={BUILD_TIME ? `${BUILD_SHA_FULL}\n${BUILD_TIME}` : BUILD_SHA_FULL}
+          >
+            {buildLabel()}
           </div>
           <div className="text-[10px] text-gray-500 mt-1">
             {dataset.rows.length} rows · {dataset.fields.length} fields ·

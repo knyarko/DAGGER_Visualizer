@@ -34,6 +34,11 @@ jobs:
         working-directory: network-ui
         # BASE_PATH must end with a trailing slash and match the deployed repo name.
         # github.event.repository.name resolves to the current repo, so forks just work.
+        # VITE_BUILD_* are picked up by src/lib/buildInfo.ts to render a visible
+        # build stamp in the app — handy for confirming which deploy is live.
+        env:
+          VITE_BUILD_SHA: ${{ github.sha }}
+          VITE_BUILD_TIME: ${{ github.event.head_commit.timestamp }}
         run: BASE_PATH="/${{ github.event.repository.name }}/" npm run build
 
       - name: Add SPA 404 fallback

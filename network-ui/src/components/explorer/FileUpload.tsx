@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { parseFileToOptions, parseURLToOptions, type DatasetOption } from '../../lib/parseData';
+import { buildLabel, BUILD_SHA_FULL, BUILD_TIME } from '../../lib/buildInfo';
 
 interface SampleDataset {
   label: string;
@@ -143,6 +144,12 @@ export default function FileUpload({ onLoaded }: Props) {
           <div>· JSON wrapper objects with a <code className="text-gray-400">data</code>, <code className="text-gray-400">rows</code>, <code className="text-gray-400">items</code>, or <code className="text-gray-400">links</code> array</div>
           <div>· JSON objects with multiple arrays (e.g. <code className="text-gray-400">{`{"nodes":[...],"edges":[...]}`}</code>) — you'll be asked which to visualize</div>
         </div>
+      </div>
+      <div
+        className="fixed bottom-2 right-3 text-[10px] text-gray-600 font-mono select-text"
+        title={BUILD_TIME ? `${BUILD_SHA_FULL}\n${BUILD_TIME}` : BUILD_SHA_FULL}
+      >
+        {buildLabel()}
       </div>
     </div>
   );
