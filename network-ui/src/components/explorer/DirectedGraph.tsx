@@ -496,6 +496,32 @@ export default function DirectedGraph({
       return highlightedNodes.has(sId) && highlightedNodes.has(tId);
     };
 
+    // The "interactive subnetwork" is wider than the visual highlight: it
+    // determines which nodes/edges still respond to hover. In chain mode we
+    // reuse the highlight set; in plain node-selection mode we include the
+    // selected node plus its direct neighbours (so tooltips work on what
+    // you're actually looking at, not on the dense background you're not).
+    let interactiveNodes: Set<string> | null = null;
+    if (highlightedNodes) {
+      interactiveNodes = highlightedNodes;
+    } else if (selectedNode) {
+      interactiveNodes = new Set<string>([selectedNode]);
+      svg.selectAll<SVGLineElement, Link>('g.links line').each(function(l) {
+        const sId = typeof l.source === 'string' ? l.source : l.source.id;
+        const tId = typeof l.target === 'string' ? l.target : l.target.id;
+        if (sId === selectedNode) interactiveNodes!.add(tId);
+        else if (tId === selectedNode) interactiveNodes!.add(sId);
+      });
+    }
+    const isNodeInteractive = (id: string): boolean =>
+      !interactiveNodes || interactiveNodes.has(id);
+    const isLinkInteractive = (l: Link): boolean => {
+      if (!interactiveNodes) return true;
+      const sId = typeof l.source === 'string' ? l.source : l.source.id;
+      const tId = typeof l.target === 'string' ? l.target : l.target.id;
+      return interactiveNodes.has(sId) && interactiveNodes.has(tId);
+    };
+
     svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
       .attr('stroke', d => d.id === selectedNode ? '#06b6d4' : '#fff')
       .attr('stroke-width', d => d.id === selectedNode ? 3 : 1)
@@ -504,12 +530,13 @@ export default function DirectedGraph({
     svg.selectAll<SVGTextElement, Node>('g.nodes g text')
       .attr('opacity', d => nodeInHighlight(d.id) ? 1 : 0.15);
 
-    // Disable pointer events on dimmed nodes so hovering them doesn't fire
-    // tooltips that obscure the selected subnetwork. Applied only when a
-    // chain/reachability highlight is active — otherwise everything stays
-    // interactive.
+    // Disable pointer events on nodes outside the interactive subnetwork
+    // (chain highlight set OR selected node + direct neighbours). This stops
+    // unrelated tooltips from firing and occluding the area you're focused
+    // on. When nothing is selected, interactiveNodes is null and everything
+    // stays interactive.
     svg.selectAll<SVGGElement, Node>('g.nodes > g')
-      .style('pointer-events', d => (highlightedNodes && !highlightedNodes.has(d.id)) ? 'none' : null);
+      .style('pointer-events', d => isNodeInteractive(d.id) ? null : 'none');
 
     svg.selectAll<SVGLineElement, Link>('g.links line')
       .attr('stroke', l => {
@@ -537,7 +564,7 @@ export default function DirectedGraph({
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
         return sId === selectedNode || tId === selectedNode ? 'url(#arrow-selected)' : 'url(#arrow)';
       })
-      .style('pointer-events', l => (highlightedNodes && !linkInHighlight(l)) ? 'none' : null);
+      .style('pointer-events', l => isLinkInteractive(l) ? null : 'none');
 
     // Edge labels visibility follows the link
     svg.selectAll<SVGTextElement, Link>('g.edge-labels text')
