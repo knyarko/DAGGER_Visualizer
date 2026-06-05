@@ -504,6 +504,13 @@ export default function DirectedGraph({
     svg.selectAll<SVGTextElement, Node>('g.nodes g text')
       .attr('opacity', d => nodeInHighlight(d.id) ? 1 : 0.15);
 
+    // Disable pointer events on dimmed nodes so hovering them doesn't fire
+    // tooltips that obscure the selected subnetwork. Applied only when a
+    // chain/reachability highlight is active — otherwise everything stays
+    // interactive.
+    svg.selectAll<SVGGElement, Node>('g.nodes > g')
+      .style('pointer-events', d => (highlightedNodes && !highlightedNodes.has(d.id)) ? 'none' : null);
+
     svg.selectAll<SVGLineElement, Link>('g.links line')
       .attr('stroke', l => {
         // Chain edge wins
@@ -529,7 +536,8 @@ export default function DirectedGraph({
         const sId = typeof l.source === 'string' ? l.source : l.source.id;
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
         return sId === selectedNode || tId === selectedNode ? 'url(#arrow-selected)' : 'url(#arrow)';
-      });
+      })
+      .style('pointer-events', l => (highlightedNodes && !linkInHighlight(l)) ? 'none' : null);
 
     // Edge labels visibility follows the link
     svg.selectAll<SVGTextElement, Link>('g.edge-labels text')
