@@ -472,7 +472,7 @@ export default function DirectedGraph({
       simRef.current = null;
       tooltip.remove();
     };
-  }, [graph, colorScale, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick]);
+  }, [graph, colorScale, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode]);
   // selectedNode handled by a separate effect below to avoid restarting the simulation on selection
 
   // Spread control — retune the existing simulation's link/charge forces
