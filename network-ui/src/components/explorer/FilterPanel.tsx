@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FieldInfo } from '../../lib/parseData';
 import type { FilterMap, FilterValue } from '../../lib/mapping';
 import { isCategorical } from '../../lib/mapping';
+
+const COMBOBOX_MAX_VISIBLE = 200;
 
 interface Props {
   fields: FieldInfo[];
@@ -188,27 +190,105 @@ function DateFilter({
 
 function TextFilter({
   field,
+  rows,
   value,
   onChange,
 }: {
   field: FieldInfo;
+  rows: Record<string, unknown>[];
   value: Extract<FilterValue, { type: 'text' }> | undefined;
   onChange: (next: FilterValue | undefined) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Frequency-sorted unique values for this field. Computed once per row set
+  // so a 50k-row dataset doesn't re-tally on every keystroke.
+  const sortedOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      const v = r[field.name];
+      if (v === null || v === undefined || v === '') continue;
+      const s = String(v);
+      counts.set(s, (counts.get(s) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+  }, [rows, field.name]);
+
+  const query = value?.query ?? '';
+  const lowerQuery = query.toLowerCase();
+  const visibleOptions = useMemo(() => {
+    if (!query) return sortedOptions;
+    return sortedOptions.filter(([v]) => v.toLowerCase().includes(lowerQuery));
+  }, [sortedOptions, query, lowerQuery]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const setQuery = (q: string) => {
+    if (!q) onChange(undefined);
+    else onChange({ type: 'text', query: q });
+  };
+
   return (
-    <div>
+    <div ref={wrapperRef} className="relative">
       <div className="text-xs font-semibold text-gray-300 mb-1">{field.name}</div>
-      <input
-        type="text"
-        placeholder={`substring · ${field.uniqueCount} unique`}
-        value={value?.query ?? ''}
-        onChange={(e) => {
-          const q = e.target.value;
-          if (!q) onChange(undefined);
-          else onChange({ type: 'text', query: q });
-        }}
-        className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
-      />
+      <div className="flex">
+        <input
+          type="text"
+          placeholder={`substring · ${field.uniqueCount} unique`}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!open) setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          className="flex-1 bg-gray-800 border border-gray-700 border-r-0 rounded-l px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+        />
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="bg-gray-800 border border-gray-700 rounded-r px-1.5 text-gray-400 hover:text-white text-[10px]"
+          title="Toggle dropdown"
+        >
+          {open ? '▲' : '▼'}
+        </button>
+      </div>
+      {open && visibleOptions.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-gray-900 border border-gray-700 rounded shadow-lg z-50 max-h-60 overflow-y-auto">
+          {visibleOptions.slice(0, COMBOBOX_MAX_VISIBLE).map(([v, c]) => (
+            <button
+              key={v}
+              onClick={() => {
+                setQuery(v);
+                setOpen(false);
+              }}
+              className="w-full text-left text-xs px-2 py-1 hover:bg-gray-800 flex items-center justify-between gap-2"
+            >
+              <span className="truncate">{v}</span>
+              <span className="text-gray-500 text-[10px] shrink-0">({c})</span>
+            </button>
+          ))}
+          {visibleOptions.length > COMBOBOX_MAX_VISIBLE && (
+            <div className="text-[10px] text-gray-500 text-center py-1 border-t border-gray-800">
+              …{visibleOptions.length - COMBOBOX_MAX_VISIBLE} more — type to narrow
+            </div>
+          )}
+        </div>
+      )}
+      {open && visibleOptions.length === 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-gray-900 border border-gray-700 rounded shadow-lg z-50 px-2 py-1 text-[10px] text-gray-500">
+          no matches
+        </div>
+      )}
     </div>
   );
 }
@@ -266,10 +346,11 @@ export default function FilterPanel({ fields, rows, filters, onChange }: Props) 
               />
             );
           } else {
-            // Free text or high-cardinality string → substring filter
+            // Free text or high-cardinality string → substring filter w/ combobox
             body = (
               <TextFilter
                 field={field}
+                rows={rows}
                 value={filters[field.name] as Extract<FilterValue, { type: 'text' }> | undefined}
                 onChange={(v) => setFilter(field.name, v)}
               />
