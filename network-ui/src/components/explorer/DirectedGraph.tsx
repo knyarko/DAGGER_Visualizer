@@ -386,7 +386,17 @@ export default function DirectedGraph({
         }
         if (mapping.edgeWeightField) lines.push(`<em style="color:#9ca3af">${escapeHTML(mapping.edgeWeightField)}:</em> ${l.weight}`);
 
-        const skip = new Set([mapping.sourceField, mapping.targetField, mapping.edgeLabelField].filter(Boolean) as string[]);
+        const skip = new Set([
+          mapping.sourceField,
+          mapping.targetField,
+          mapping.edgeLabelField,
+          // Auto-skip "noise" fields common in edge-list JSON:
+          //   · <source>_label / <target>_label → redundant display copies of the IDs
+          //   · legend_key_id                    → internal index, never user-facing
+          `${mapping.sourceField}_label`,
+          `${mapping.targetField}_label`,
+          'legend_key_id',
+        ].filter(Boolean) as string[]);
         const shown = new Set<string>();
 
         // First pass: pin any justification-like fields with content. These
