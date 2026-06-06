@@ -260,7 +260,7 @@ export default function DirectedGraph({
       .data(graph.links)
       .join('line')
       .attr('stroke', '#9ca3af')
-      .attr('stroke-opacity', 0.6)
+      .attr('opacity', 0.7) // initial; selection effect overrides per-edge
       .attr('stroke-width', l => weightScale(l.weight))
       .attr('marker-end', 'url(#arrow)');
 
@@ -568,13 +568,16 @@ export default function DirectedGraph({
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
         return sId === selectedNode || tId === selectedNode ? '#06b6d4' : '#374151';
       })
-      .attr('stroke-opacity', l => {
+      // `opacity` rather than `stroke-opacity` so that the dimming applies to
+      // the marker-end arrowhead too — `stroke-opacity` only touches the line
+      // itself, leaving solid arrowheads floating on top of dimmed edges.
+      .attr('opacity', l => {
         if (isLinkInChain(l)) return 1;
-        if (highlightedNodes) return linkInHighlight(l) ? 0.6 : 0.05;
-        if (!selectedNode) return 0.6;
+        if (highlightedNodes) return linkInHighlight(l) ? 0.7 : 0.05;
+        if (!selectedNode) return 0.7;
         const sId = typeof l.source === 'string' ? l.source : l.source.id;
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
-        return sId === selectedNode || tId === selectedNode ? 1 : 0.15;
+        return sId === selectedNode || tId === selectedNode ? 1 : 0.1;
       })
       .attr('marker-end', l => {
         if (isLinkInChain(l)) return 'url(#arrow-selected)';
