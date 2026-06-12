@@ -1,0 +1,585 @@
+diff --git a/network-ui/src/components/explorer/DataExplorer.tsx b/network-ui/src/components/explorer/DataExplorer.tsx
+index a1e03ea5..f53add37 100644
+--- a/network-ui/src/components/explorer/DataExplorer.tsx
++++ b/network-ui/src/components/explorer/DataExplorer.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useMemo, useState } from 'react';
++import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+ import FileUpload from './FileUpload';
+ import FieldMapper from './FieldMapper';
+ import FilterPanel from './FilterPanel';
+@@ -6,6 +6,9 @@ import DirectedGraph from './DirectedGraph';
+ import type { DatasetOption } from '../../lib/parseData';
+ import { suggestMapping, type FilterMap, type VisualMapping } from '../../lib/mapping';
+ import { enumerateChains, reachableWithin, chainToEdgeKeys } from '../../lib/chains';
++import { computeTimeRange, buildOpacityMap, formatCursor, FADE_WINDOW_DAYS } from '../../lib/timeline';
++
++const MS_PER_DAY = 24 * 60 * 60 * 1000;
+ 
+ const CHAIN_MAX_PATHS = 200;
+ 
+@@ -117,12 +120,32 @@ export default function DataExplorer({ onSwitchMode }: Props) {
+   // Visual layout: spread is a multiplier on link distance + charge repulsion.
+   // 1.0 = packed default; higher values pull dense clusters apart.
+   const [spread, setSpread] = useState(1.0);
++  // Timeline: cursor is the current "time" in epoch ms. null = timeline off
++  // (all nodes shown regardless of date). Enabled only when the selected
++  // option carries companion node data with resolvable dates.
++  const [timeCursor, setTimeCursor] = useState<number | null>(null);
++  const [playing, setPlaying] = useState(false);
++  const playRef = useRef<number | null>(null);
+ 
+-  const dataset = useMemo(() => {
++  const selectedOption = useMemo(() => {
+     if (!options || !selectedOptionId) return null;
+-    return options.find(o => o.id === selectedOptionId)?.dataset ?? null;
++    return options.find(o => o.id === selectedOptionId) ?? null;
+   }, [options, selectedOptionId]);
+ 
++  const dataset = useMemo(() => selectedOption?.dataset ?? null, [selectedOption]);
++
++  // Companion node lookup (id → unflattened node record) from the auto-join.
++  const nodeData = useMemo(
++    () => selectedOption?.companionNodes?.byId ?? null,
++    [selectedOption],
++  );
++
++  // Timeline span derived from node event dates. hasDates=false → no slider.
++  const timeRange = useMemo(() => {
++    if (!nodeData) return { min: 0, max: 0, hasDates: false };
++    return computeTimeRange(nodeData);
++  }, [nodeData]);
++
+   const handleLoaded = (opts: DatasetOption[], fileName: string) => {
+     setOptions(opts);
+     setSourceFileName(fileName);
+@@ -146,6 +169,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
+     setKCore(0);
+     setChainDepth(0);
+     setSelectedChainIndex(null);
++    setTimeCursor(null);
++    setPlaying(false);
+   }, [selectedOptionId]); // intentional: only re-run when the chosen option changes
+ 
+   // Whenever the selection changes (or chain controls change), reset the
+@@ -220,6 +245,48 @@ export default function DataExplorer({ onSwitchMode }: Props) {
+     return chainToEdgeKeys(chains[selectedChainIndex], chainDirection);
+   }, [chains, selectedChainIndex, chainDirection]);
+ 
++  // Per-node opacity for the current timeline cursor. null when timeline is
++  // off or there are no dates — DirectedGraph treats null as "all visible".
++  const nodeOpacity = useMemo<Map<string, number> | null>(() => {
++    if (timeCursor === null || !nodeData || !timeRange.hasDates) return null;
++    return buildOpacityMap(nodeData, timeCursor);
++  }, [timeCursor, nodeData, timeRange.hasDates]);
++
++  // Playback: advance the cursor ~1.5% of the span per frame (~throttled to a
++  // step) until it reaches the end, then stop. Step granularity is one day so
++  // the fade reads smoothly on month-to-year spans.
++  useEffect(() => {
++    if (!playing || timeRange.hasDates === false) return;
++    const span = timeRange.max - timeRange.min;
++    const step = Math.max(MS_PER_DAY, span / 240); // ~240 frames end-to-end
++    const tick = () => {
++      setTimeCursor(prev => {
++        const cur = prev === null ? timeRange.min : prev;
++        const next = cur + step;
++        if (next >= timeRange.max) {
++          setPlaying(false);
++          return timeRange.max;
++        }
++        return next;
++      });
++      playRef.current = window.setTimeout(tick, 40);
++    };
++    playRef.current = window.setTimeout(tick, 40);
++    return () => {
++      if (playRef.current !== null) window.clearTimeout(playRef.current);
++    };
++  }, [playing, timeRange]);
++
++  const enableTimeline = useCallback(() => {
++    if (!timeRange.hasDates) return;
++    setTimeCursor(timeRange.min);
++  }, [timeRange]);
++
++  const disableTimeline = useCallback(() => {
++    setTimeCursor(null);
++    setPlaying(false);
++  }, []);
++
+   if (!options || !dataset || !mapping || !selectedOptionId) {
+     return (
+       <div className="relative">
+@@ -351,6 +418,61 @@ export default function DataExplorer({ onSwitchMode }: Props) {
+             </div>
+           </div>
+ 
++          {/* Timeline: fade nodes in/out by event date (needs companion node data) */}
++          {timeRange.hasDates && (
++            <div>
++              <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
++                <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400">Timeline</h2>
++                {timeCursor !== null && (
++                  <button
++                    onClick={disableTimeline}
++                    className="text-[10px] text-gray-400 hover:text-white"
++                  >
++                    reset
++                  </button>
++                )}
++              </div>
++              <div className={`rounded p-2 ${timeCursor !== null ? 'bg-blue-950/30 border border-blue-900' : 'bg-gray-800/40'}`}>
++                {timeCursor === null ? (
++                  <button
++                    onClick={enableTimeline}
++                    className="w-full text-xs py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium"
++                  >
++                    ▶ Enable timeline
++                  </button>
++                ) : (
++                  <>
++                    <div className="flex items-center justify-between mb-1">
++                      <span className="text-xs font-semibold text-gray-300">{formatCursor(timeCursor)}</span>
++                      <button
++                        onClick={() => setPlaying(p => !p)}
++                        className="text-[10px] px-2 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-white"
++                      >
++                        {playing ? '❚❚ pause' : '▶ play'}
++                      </button>
++                    </div>
++                    <input
++                      type="range"
++                      min={timeRange.min}
++                      max={timeRange.max}
++                      step={MS_PER_DAY}
++                      value={timeCursor}
++                      onChange={(e) => { setPlaying(false); setTimeCursor(Number(e.target.value)); }}
++                      className="w-full accent-blue-500"
++                    />
++                    <div className="flex justify-between text-[9px] text-gray-500 mt-0.5">
++                      <span>{formatCursor(timeRange.min)}</span>
++                      <span>{formatCursor(timeRange.max)}</span>
++                    </div>
++                    <div className="text-[10px] text-gray-500 mt-1">
++                      nodes appear on their event date, fade over {FADE_WINDOW_DAYS} days, then their edges drop
++                    </div>
++                  </>
++                )}
++              </div>
++            </div>
++          )}
++
+           {/* Topology filter: K-core decomposition */}
+           <div>
+             <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
+@@ -411,6 +533,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
+           onNodeClick={setSelectedNode}
+           highlightedNodes={highlightedNodes}
+           highlightedEdgeKeys={highlightedEdgeKeys}
++          nodeOpacity={nodeOpacity}
+           spread={spread}
+         />
+       </main>
+@@ -444,6 +567,40 @@ export default function DataExplorer({ onSwitchMode }: Props) {
+               </button>
+             </div>
+ 
++            {/* Rich node detail (all_info) from the companion node table */}
++            {(() => {
++              const rec = nodeData?.get(selectedNode);
++              if (!rec) return null;
++              const allInfo = rec.all_info ?? rec.info;
++              const label = rec.label;
++              const category = rec.category;
++              return (
++                <div className="rounded bg-gray-800/40 border border-gray-700 overflow-hidden">
++                  {(label != null || category != null) && (
++                    <div className="px-2 py-1.5 border-b border-gray-700 flex items-center gap-2">
++                      {label != null && (
++                        <span className="text-xs font-semibold text-gray-200 truncate">{String(label)}</span>
++                      )}
++                      {category != null && (
++                        <span className="text-[9px] uppercase tracking-wider text-emerald-400">{String(category)}</span>
++                      )}
++                    </div>
++                  )}
++                  {typeof allInfo === 'string' && allInfo.trim() ? (
++                    <div
++                      className="node-all-info p-2 text-xs text-gray-300 max-h-[40vh] overflow-y-auto"
++                      // all_info is pre-formatted HTML produced by the pipeline
++                      // (bold/colored spans, lists, <img> thumbnails). It comes
++                      // from the user's own data file, not a remote source.
++                      dangerouslySetInnerHTML={{ __html: String(allInfo) }}
++                    />
++                  ) : (
++                    <div className="p-2 text-[10px] text-gray-500">No additional info for this node.</div>
++                  )}
++                </div>
++              );
++            })()}
++
+             {/* Chain controls */}
+             <div className={`rounded p-2 ${chainDepth > 0 ? 'bg-blue-950/30 border border-blue-900' : 'bg-gray-800/40'}`}>
+               <div className="flex items-center justify-between mb-1">
+diff --git a/network-ui/src/components/explorer/DirectedGraph.tsx b/network-ui/src/components/explorer/DirectedGraph.tsx
+index e06f5d3e..b1202e70 100644
+--- a/network-ui/src/components/explorer/DirectedGraph.tsx
++++ b/network-ui/src/components/explorer/DirectedGraph.tsx
+@@ -14,6 +14,9 @@ interface Props {
+   highlightedNodes?: Set<string> | null;
+   /** When non-null, mark these "src|||tgt" edges as the active chain (cyan). */
+   highlightedEdgeKeys?: Set<string> | null;
++  /** When non-null, per-node timeline opacity (0..1) keyed by node id. Nodes
++   *  absent from the map (or the whole map being null) are treated as opacity 1. */
++  nodeOpacity?: Map<string, number> | null;
+   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
+   spread?: number;
+ }
+@@ -82,6 +85,7 @@ export default function DirectedGraph({
+   onNodeClick,
+   highlightedNodes = null,
+   highlightedEdgeKeys = null,
++  nodeOpacity = null,
+   spread = 1.0,
+ }: Props) {
+   const svgRef = useRef<SVGSVGElement>(null);
+@@ -483,6 +487,16 @@ export default function DirectedGraph({
+     if (!svgRef.current) return;
+     const svg = d3.select(svgRef.current);
+ 
++    // Timeline opacity for a node id (1 when timeline off or id undated).
++    const timeOpacity = (id: string): number => {
++      if (!nodeOpacity) return 1;
++      const v = nodeOpacity.get(id);
++      return v === undefined ? 1 : v;
++    };
++    // A node is considered "gone" (fully faded) below this threshold; its
++    // edges are then hidden entirely.
++    const GONE = 0.02;
++
+     const isLinkInChain = (l: Link): boolean => {
+       if (!highlightedEdgeKeys) return false;
+       return highlightedEdgeKeys.has(l.edgeKey);
+@@ -495,14 +509,27 @@ export default function DirectedGraph({
+       const tId = typeof l.target === 'string' ? l.target : l.target.id;
+       return highlightedNodes.has(sId) && highlightedNodes.has(tId);
+     };
++    // Edge timeline opacity = min of endpoints; 0 (hidden) if either is gone.
++    const linkTimeOpacity = (l: Link): number => {
++      const sId = typeof l.source === 'string' ? l.source : l.source.id;
++      const tId = typeof l.target === 'string' ? l.target : l.target.id;
++      const so = timeOpacity(sId);
++      const to = timeOpacity(tId);
++      const m = Math.min(so, to);
++      return m < GONE ? 0 : m;
++    };
+ 
+     svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
+       .attr('stroke', d => d.id === selectedNode ? '#06b6d4' : '#fff')
+       .attr('stroke-width', d => d.id === selectedNode ? 3 : 1)
+-      .attr('opacity', d => nodeInHighlight(d.id) ? 1 : 0.12);
++      .attr('opacity', d => (nodeInHighlight(d.id) ? 1 : 0.12) * timeOpacity(d.id));
+ 
+     svg.selectAll<SVGTextElement, Node>('g.nodes g text')
+-      .attr('opacity', d => nodeInHighlight(d.id) ? 1 : 0.15);
++      .attr('opacity', d => (nodeInHighlight(d.id) ? 1 : 0.15) * timeOpacity(d.id));
++
++    // Hide pointer events on fully-faded nodes so you can't click ghosts.
++    svg.selectAll<SVGGElement, Node>('g.nodes g')
++      .style('pointer-events', d => timeOpacity(d.id) < GONE ? 'none' : 'auto');
+ 
+     svg.selectAll<SVGLineElement, Link>('g.links line')
+       .attr('stroke', l => {
+@@ -515,14 +542,21 @@ export default function DirectedGraph({
+         return sId === selectedNode || tId === selectedNode ? '#06b6d4' : '#374151';
+       })
+       .attr('stroke-opacity', l => {
+-        if (isLinkInChain(l)) return 1;
+-        if (highlightedNodes) return linkInHighlight(l) ? 0.6 : 0.05;
+-        if (!selectedNode) return 0.6;
+-        const sId = typeof l.source === 'string' ? l.source : l.source.id;
+-        const tId = typeof l.target === 'string' ? l.target : l.target.id;
+-        return sId === selectedNode || tId === selectedNode ? 1 : 0.15;
++        const t = linkTimeOpacity(l);
++        if (t === 0) return 0;
++        let base: number;
++        if (isLinkInChain(l)) base = 1;
++        else if (highlightedNodes) base = linkInHighlight(l) ? 0.6 : 0.05;
++        else if (!selectedNode) base = 0.6;
++        else {
++          const sId = typeof l.source === 'string' ? l.source : l.source.id;
++          const tId = typeof l.target === 'string' ? l.target : l.target.id;
++          base = sId === selectedNode || tId === selectedNode ? 1 : 0.15;
++        }
++        return base * t;
+       })
+       .attr('marker-end', l => {
++        if (linkTimeOpacity(l) === 0) return null;
+         if (isLinkInChain(l)) return 'url(#arrow-selected)';
+         if (highlightedNodes && !linkInHighlight(l)) return 'url(#arrow)';
+         if (!selectedNode) return 'url(#arrow)';
+@@ -531,14 +565,16 @@ export default function DirectedGraph({
+         return sId === selectedNode || tId === selectedNode ? 'url(#arrow-selected)' : 'url(#arrow)';
+       });
+ 
+-    // Edge labels visibility follows the link
++    // Edge labels visibility follows the link (and its timeline opacity)
+     svg.selectAll<SVGTextElement, Link>('g.edge-labels text')
+       .attr('opacity', l => {
+-        if (isLinkInChain(l)) return 1;
+-        if (highlightedNodes) return linkInHighlight(l) ? 0.9 : 0.05;
+-        return 0.9;
++        const t = linkTimeOpacity(l);
++        if (t === 0) return 0;
++        if (isLinkInChain(l)) return 1 * t;
++        if (highlightedNodes) return (linkInHighlight(l) ? 0.9 : 0.05) * t;
++        return 0.9 * t;
+       });
+-  }, [selectedNode, highlightedNodes, highlightedEdgeKeys]);
++  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity]);
+ 
+   // Legend for color scale
+   const legendItems = useMemo(() => {
+diff --git a/network-ui/src/lib/parseData.ts b/network-ui/src/lib/parseData.ts
+index 8f6f19d8..9e639db9 100644
+--- a/network-ui/src/lib/parseData.ts
++++ b/network-ui/src/lib/parseData.ts
+@@ -260,6 +260,16 @@ export interface DatasetOption {
+   description: string;       // one-line summary (row/field counts, join key, …)
+   dataset: ParsedDataset;
+   recommended?: boolean;     // hint for the UI
++  // Auto-join: when the source file is a graph object with BOTH a node array
++  // and an edge array, the edge option carries the node array here as a lookup
++  // keyed by node id. This lets the graph render from edges while still having
++  // access to rich per-node attributes (all_info, timestamp, category, …) for
++  // the detail panel and timeline. Undefined for plain arrays / CSVs.
++  companionNodes?: {
++    byId: Map<string, Record<string, unknown>>;  // node id → full (unflattened) node record
++    idField: string;                              // which field held the node id
++    rawNodes: Record<string, unknown>[];          // all node records (unflattened)
++  };
+ }
+ 
+ // Priority order used to pick a recommended default array when a JSON object
+@@ -377,6 +387,58 @@ function makeArrayOption(key: string, items: Record<string, unknown>[], fileName
+   };
+ }
+ 
++// Candidate field names that typically hold a node's unique id. Checked in
++// order; first one present on the majority of records wins.
++const NODE_ID_FIELD_CANDIDATES = ['node', 'id', 'node_id', 'nodeId', 'name', 'key'];
++
++// Heuristic: which array key looks like a node table vs. an edge table.
++// Edge tables almost always carry source/target-ish fields; node tables don't.
++const EDGE_KEY_NAMES = new Set(['edges', 'links', 'relationships']);
++const NODE_KEY_NAMES = new Set(['nodes', 'vertices', 'entities']);
++
++function findNodeIdField(items: Record<string, unknown>[]): string | null {
++  if (items.length === 0) return null;
++  const sample = items.slice(0, Math.min(items.length, 50));
++  for (const cand of NODE_ID_FIELD_CANDIDATES) {
++    const present = sample.filter(r => {
++      const v = r[cand];
++      return v !== null && v !== undefined && v !== '';
++    }).length;
++    if (present >= sample.length * 0.9) return cand;
++  }
++  return null;
++}
++
++function looksLikeEdgeArray(key: string, items: Record<string, unknown>[]): boolean {
++  if (EDGE_KEY_NAMES.has(key.toLowerCase())) return true;
++  if (NODE_KEY_NAMES.has(key.toLowerCase())) return false;
++  const sample = items.slice(0, Math.min(items.length, 20));
++  const hasSrcTgt = sample.some(r =>
++    ('source' in r || 'src' in r || 'from' in r) &&
++    ('target' in r || 'dst' in r || 'to' in r),
++  );
++  return hasSrcTgt;
++}
++
++// Build the companion-node lookup from a node array and attach it to an edge
++// option. Returns the same option (mutated) for chaining convenience.
++function attachCompanionNodes(
++  edgeOption: DatasetOption,
++  nodeItems: Record<string, unknown>[],
++): DatasetOption {
++  const idField = findNodeIdField(nodeItems);
++  if (!idField) return edgeOption;
++  const byId = new Map<string, Record<string, unknown>>();
++  for (const n of nodeItems) {
++    const idv = n[idField];
++    if (idv === null || idv === undefined || idv === '') continue;
++    byId.set(String(idv), n);  // keep UNFLATTENED so all_info HTML stays intact
++  }
++  if (byId.size === 0) return edgeOption;
++  edgeOption.companionNodes = { byId, idField, rawNodes: nodeItems };
++  return edgeOption;
++}
++
+ /**
+  * Parse a file into one or more dataset options. Behaviour:
+  *  - CSV → single option (just the rows).
+@@ -428,6 +490,30 @@ export async function parseFileToOptions(file: File): Promise<DatasetOption[]> {
+   }
+   if (arrays.length === 0) throw new Error('No arrays of objects found in JSON');
+ 
++  // ── Auto-join: graph files shaped like { nodes: [...], edges: [...] } ───────
++  // Identify the node array and the edge array. When we have both, the edge
++  // array becomes the recommended default (that's what draws the graph) and we
++  // attach the node array to it as a lookup so the detail panel + timeline can
++  // read per-node attributes (all_info, timestamp, …).
++  const edgeArrays = arrays.filter(a => looksLikeEdgeArray(a.key, a.items));
++  const nodeArrays = arrays.filter(a => !looksLikeEdgeArray(a.key, a.items) && findNodeIdField(a.items));
++
++  const opts = arrays.map(a => makeArrayOption(a.key, a.items, file.name, false));
++
++  if (edgeArrays.length >= 1 && nodeArrays.length >= 1) {
++    // Pick the first edge array as the join target, first node array as the source.
++    const edgeKey = edgeArrays[0].key;
++    const nodeItems = nodeArrays[0].items;
++    const edgeOpt = opts.find(o => o.id === `array:${edgeKey}`);
++    if (edgeOpt) {
++      attachCompanionNodes(edgeOpt, nodeItems);
++      edgeOpt.recommended = true;
++      edgeOpt.description += ' · +node data';
++      return [edgeOpt, ...opts.filter(o => o !== edgeOpt)];
++    }
++  }
++
++  // ── Fallback: original behaviour (no clean node/edge split) ────────────────
+   // Decide which array is the recommended default — prefer well-known edge-list
+   // keys, otherwise fall back to the first array in document order.
+   const preferred = PREFERRED_ARRAY_KEYS.map(k => arrays.findIndex(a => a.key === k)).find(i => i >= 0);
+diff --git a/network-ui/src/lib/timeline.ts b/network-ui/src/lib/timeline.ts
+new file mode 100644
+index 00000000..0b758bfc
+--- /dev/null
++++ b/network-ui/src/lib/timeline.ts
+@@ -0,0 +1,125 @@
++// Timeline support for the network explorer.
++//
++// A node "exists" from its event date onward, stays at full opacity for that
++// day, then fades linearly to zero over the following FADE_WINDOW_DAYS. Once
++// fully faded it is treated as gone, and any edge touching a gone node is also
++// hidden. The slider drives a single "current time" cursor (epoch ms) and we
++// derive each node's opacity from (cursor − eventDate).
++//
++// Event date precedence:
++//   1. explicit year/month/day fields (month is 1-based as in the source data)
++//   2. a parseable date string in a timestamp-like field
++// We deliberately prefer year/month/day because in the DAGGER data the
++// `timestamp` field records WHEN A NODE WAS ACCESSED, not when the underlying
++// event occurred — the event date lives in day/month/year.
++
++export const FADE_WINDOW_DAYS = 30;
++const MS_PER_DAY = 24 * 60 * 60 * 1000;
++
++const TIMESTAMP_FIELD_CANDIDATES = [
++  'event_date', 'date', 'timestamp', 'time', 'created_at', 'datetime',
++];
++
++/**
++ * Resolve a node record's event date to epoch ms, or null if undeterminable.
++ * `record` is the UNFLATTENED node object from companionNodes.
++ */
++export function nodeEventDate(record: Record<string, unknown>): number | null {
++  // 1. Structured year/month/day (month is 1-based in source data)
++  const y = toInt(record.year);
++  if (y !== null) {
++    const m = toInt(record.month);
++    const d = toInt(record.day);
++    const month = m !== null && m >= 1 && m <= 12 ? m - 1 : 0;
++    const day = d !== null && d >= 1 && d <= 31 ? d : 1;
++    const t = new Date(y, month, day).getTime();
++    if (Number.isFinite(t)) return t;
++  }
++
++  // 2. A parseable timestamp-ish string. Strip a trailing timezone token like
++  //    "GT" that Date.parse chokes on (e.g. "2017-09-20 15:03 GT").
++  for (const f of TIMESTAMP_FIELD_CANDIDATES) {
++    const v = record[f];
++    if (typeof v !== 'string' || !v.trim()) continue;
++    const cleaned = v.trim().replace(/\s+[A-Za-z]{1,4}$/, '');
++    const t = Date.parse(cleaned);
++    if (Number.isFinite(t)) return t;
++  }
++
++  return null;
++}
++
++function toInt(v: unknown): number | null {
++  if (v === null || v === undefined || v === '') return null;
++  const n = typeof v === 'number' ? v : Number(String(v).trim());
++  return Number.isInteger(n) ? n : (Number.isFinite(n) ? Math.trunc(n) : null);
++}
++
++export interface TimeRange {
++  min: number;  // epoch ms — earliest node event date
++  max: number;  // epoch ms — latest node event date
++  hasDates: boolean;
++}
++
++/**
++ * Compute the [min, max] event-date span across all node records. The max is
++ * padded by FADE_WINDOW_DAYS so the slider can reach a point where even the
++ * last-appearing node has fully faded.
++ */
++export function computeTimeRange(byId: Map<string, Record<string, unknown>>): TimeRange {
++  let min = Infinity;
++  let max = -Infinity;
++  for (const rec of byId.values()) {
++    const t = nodeEventDate(rec);
++    if (t === null) continue;
++    if (t < min) min = t;
++    if (t > max) max = t;
++  }
++  if (!Number.isFinite(min) || !Number.isFinite(max)) {
++    return { min: 0, max: 0, hasDates: false };
++  }
++  return { min, max: max + FADE_WINDOW_DAYS * MS_PER_DAY, hasDates: true };
++}
++
++/**
++ * Opacity of a node at a given cursor time.
++ *   · cursor < eventDate                → 0   (not yet appeared)
++ *   · cursor within [eventDate, +1 day) → 1   (fully present)
++ *   · cursor in fade window             → linear 1 → 0
++ *   · cursor past fade window           → 0   (gone)
++ * Nodes with no resolvable date are always visible (opacity 1) so an undated
++ * dataset isn't silently emptied.
++ */
++export function nodeOpacityAt(eventDate: number | null, cursor: number): number {
++  if (eventDate === null) return 1;
++  if (cursor < eventDate) return 0;
++  const ageDays = (cursor - eventDate) / MS_PER_DAY;
++  if (ageDays <= 1) return 1;
++  if (ageDays >= FADE_WINDOW_DAYS) return 0;
++  // Linear fade from day 1 → day FADE_WINDOW_DAYS
++  return 1 - (ageDays - 1) / (FADE_WINDOW_DAYS - 1);
++}
++
++/**
++ * Build a Map<nodeId, opacity> for the current cursor. Pre-resolves each
++ * node's event date once. Node ids not present in `byId` (e.g. an edge
++ * endpoint with no node record) default to opacity 1 — caller decides whether
++ * to treat missing-date endpoints as always-on.
++ */
++export function buildOpacityMap(
++  byId: Map<string, Record<string, unknown>>,
++  cursor: number,
++): Map<string, number> {
++  const out = new Map<string, number>();
++  for (const [id, rec] of byId.entries()) {
++    out.set(id, nodeOpacityAt(nodeEventDate(rec), cursor));
++  }
++  return out;
++}
++
++// A short human label for a cursor time, e.g. "Sep 20, 2017".
++export function formatCursor(ms: number): string {
++  const d = new Date(ms);
++  if (Number.isNaN(d.getTime())) return '—';
++  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
++}
