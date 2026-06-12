@@ -6,6 +6,7 @@ import DirectedGraph from './DirectedGraph';
 import type { DatasetOption } from '../../lib/parseData';
 import { suggestMapping, type FilterMap, type VisualMapping } from '../../lib/mapping';
 import { enumerateChains, reachableWithin, chainToEdgeKeys } from '../../lib/chains';
+import { buildLabel, BUILD_SHA_FULL, BUILD_TIME } from '../../lib/buildInfo';
 import { computeTimeRange, buildOpacityMap, formatCursor, FADE_WINDOW_DAYS } from '../../lib/timeline';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -126,6 +127,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   const [timeCursor, setTimeCursor] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const playRef = useRef<number | null>(null);
+  // Edge label visibility: 'auto' (show below density cap), 'on', or 'off'.
+  const [edgeLabelMode, setEdgeLabelMode] = useState<'auto' | 'on' | 'off'>('auto');
 
   const selectedOption = useMemo(() => {
     if (!options || !selectedOptionId) return null;
@@ -418,6 +421,28 @@ export default function DataExplorer({ onSwitchMode }: Props) {
             </div>
           </div>
 
+          {/* Edge labels: auto (show below density cap) / on / off */}
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 border-b border-gray-700 pb-2 mb-3">
+              Edge labels
+            </h2>
+            <div className="flex rounded overflow-hidden border border-gray-700">
+              {(['auto', 'on', 'off'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setEdgeLabelMode(mode)}
+                  className={`flex-1 py-1 text-[11px] transition-colors ${
+                    edgeLabelMode === mode
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Timeline: fade nodes in/out by event date (needs companion node data) */}
           {timeRange.hasDates && (
             <div>
@@ -431,21 +456,6 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                     reset
                   </button>
                 )}
-              </div>
-              <div className="flex rounded overflow-hidden border border-gray-700">
-                {(['auto', 'on', 'off'] as const).map(mode => (
-                  <button
-                    key={mode}
-                    onClick={() => setEdgeLabelMode(mode)}
-                    className={`flex-1 py-1 text-[11px] transition-colors ${
-                      edgeLabelMode === mode
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                    }`}
-                  >
-                    {mode}
-                  </button>
-                ))}
               </div>
               <div className={`rounded p-2 ${timeCursor !== null ? 'bg-blue-950/30 border border-blue-900' : 'bg-gray-800/40'}`}>
                 {timeCursor === null ? (
