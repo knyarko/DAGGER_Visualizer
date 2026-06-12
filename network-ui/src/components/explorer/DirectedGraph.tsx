@@ -633,8 +633,7 @@ export default function DirectedGraph({
         const sId = typeof l.source === 'string' ? l.source : l.source.id;
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
         return sId === selectedNode || tId === selectedNode ? 'url(#arrow-selected)' : 'url(#arrow)';
-      });
-
+      })
       .style('pointer-events', l => isLinkInteractive(l) ? null : 'none');
 
     // Edge labels — visibility follows the focus subnetwork. When a node is
