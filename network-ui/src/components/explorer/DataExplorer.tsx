@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FileUpload from './FileUpload';
 import FieldMapper from './FieldMapper';
 import FilterPanel from './FilterPanel';
@@ -6,7 +6,9 @@ import DirectedGraph from './DirectedGraph';
 import type { DatasetOption } from '../../lib/parseData';
 import { suggestMapping, type FilterMap, type VisualMapping } from '../../lib/mapping';
 import { enumerateChains, reachableWithin, chainToEdgeKeys } from '../../lib/chains';
-import { buildLabel, BUILD_SHA_FULL, BUILD_TIME } from '../../lib/buildInfo';
+import { computeTimeRange, buildOpacityMap, formatCursor, FADE_WINDOW_DAYS } from '../../lib/timeline';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const CHAIN_MAX_PATHS = 200;
 
@@ -118,13 +120,31 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   // Visual layout: spread is a multiplier on link distance + charge repulsion.
   // 1.0 = packed default; higher values pull dense clusters apart.
   const [spread, setSpread] = useState(1.0);
-  // 'auto' uses a density cap (≤500 edges → show); 'on'/'off' are manual overrides.
-  const [edgeLabelMode, setEdgeLabelMode] = useState<'auto' | 'on' | 'off'>('auto');
+  // Timeline: cursor is the current "time" in epoch ms. null = timeline off
+  // (all nodes shown regardless of date). Enabled only when the selected
+  // option carries companion node data with resolvable dates.
+  const [timeCursor, setTimeCursor] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const playRef = useRef<number | null>(null);
 
-  const dataset = useMemo(() => {
+  const selectedOption = useMemo(() => {
     if (!options || !selectedOptionId) return null;
-    return options.find(o => o.id === selectedOptionId)?.dataset ?? null;
+    return options.find(o => o.id === selectedOptionId) ?? null;
   }, [options, selectedOptionId]);
+
+  const dataset = useMemo(() => selectedOption?.dataset ?? null, [selectedOption]);
+
+  // Companion node lookup (id → unflattened node record) from the auto-join.
+  const nodeData = useMemo(
+    () => selectedOption?.companionNodes?.byId ?? null,
+    [selectedOption],
+  );
+
+  // Timeline span derived from node event dates. hasDates=false → no slider.
+  const timeRange = useMemo(() => {
+    if (!nodeData) return { min: 0, max: 0, hasDates: false };
+    return computeTimeRange(nodeData);
+  }, [nodeData]);
 
   const handleLoaded = (opts: DatasetOption[], fileName: string) => {
     setOptions(opts);
@@ -149,6 +169,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     setKCore(0);
     setChainDepth(0);
     setSelectedChainIndex(null);
+    setTimeCursor(null);
+    setPlaying(false);
   }, [selectedOptionId]); // intentional: only re-run when the chosen option changes
 
   // Whenever the selection changes (or chain controls change), reset the
@@ -223,6 +245,48 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     return chainToEdgeKeys(chains[selectedChainIndex], chainDirection);
   }, [chains, selectedChainIndex, chainDirection]);
 
+  // Per-node opacity for the current timeline cursor. null when timeline is
+  // off or there are no dates — DirectedGraph treats null as "all visible".
+  const nodeOpacity = useMemo<Map<string, number> | null>(() => {
+    if (timeCursor === null || !nodeData || !timeRange.hasDates) return null;
+    return buildOpacityMap(nodeData, timeCursor);
+  }, [timeCursor, nodeData, timeRange.hasDates]);
+
+  // Playback: advance the cursor ~1.5% of the span per frame (~throttled to a
+  // step) until it reaches the end, then stop. Step granularity is one day so
+  // the fade reads smoothly on month-to-year spans.
+  useEffect(() => {
+    if (!playing || timeRange.hasDates === false) return;
+    const span = timeRange.max - timeRange.min;
+    const step = Math.max(MS_PER_DAY, span / 240); // ~240 frames end-to-end
+    const tick = () => {
+      setTimeCursor(prev => {
+        const cur = prev === null ? timeRange.min : prev;
+        const next = cur + step;
+        if (next >= timeRange.max) {
+          setPlaying(false);
+          return timeRange.max;
+        }
+        return next;
+      });
+      playRef.current = window.setTimeout(tick, 40);
+    };
+    playRef.current = window.setTimeout(tick, 40);
+    return () => {
+      if (playRef.current !== null) window.clearTimeout(playRef.current);
+    };
+  }, [playing, timeRange]);
+
+  const enableTimeline = useCallback(() => {
+    if (!timeRange.hasDates) return;
+    setTimeCursor(timeRange.min);
+  }, [timeRange]);
+
+  const disableTimeline = useCallback(() => {
+    setTimeCursor(null);
+    setPlaying(false);
+  }, []);
+
   if (!options || !dataset || !mapping || !selectedOptionId) {
     return (
       <div className="relative">
@@ -258,12 +322,6 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           </div>
           <div className="text-xs text-gray-400 truncate" title={sourceFileName}>
             📄 {sourceFileName}
-          </div>
-          <div
-            className="text-[9px] text-gray-600 font-mono mt-0.5 truncate"
-            title={BUILD_TIME ? `${BUILD_SHA_FULL}\n${BUILD_TIME}` : BUILD_SHA_FULL}
-          >
-            {buildLabel()}
           </div>
           <div className="text-[10px] text-gray-500 mt-1">
             {dataset.rows.length} rows · {dataset.fields.length} fields ·
@@ -358,11 +416,21 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                 <span>spread out</span>
               </div>
             </div>
+          </div>
 
-            <div className={`mt-2 rounded p-2 ${edgeLabelMode !== 'auto' ? 'bg-blue-950/30 border border-blue-900' : 'bg-gray-800/40'}`}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-gray-300">Edge labels</span>
-                <span className="text-[10px] text-gray-500">{edgeLabelMode}</span>
+          {/* Timeline: fade nodes in/out by event date (needs companion node data) */}
+          {timeRange.hasDates && (
+            <div>
+              <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400">Timeline</h2>
+                {timeCursor !== null && (
+                  <button
+                    onClick={disableTimeline}
+                    className="text-[10px] text-gray-400 hover:text-white"
+                  >
+                    reset
+                  </button>
+                )}
               </div>
               <div className="flex rounded overflow-hidden border border-gray-700">
                 {(['auto', 'on', 'off'] as const).map(mode => (
@@ -379,11 +447,46 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                   </button>
                 ))}
               </div>
-              <div className="text-[9px] text-gray-500 mt-1">
-                auto: hide when &gt;500 edges
+              <div className={`rounded p-2 ${timeCursor !== null ? 'bg-blue-950/30 border border-blue-900' : 'bg-gray-800/40'}`}>
+                {timeCursor === null ? (
+                  <button
+                    onClick={enableTimeline}
+                    className="w-full text-xs py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium"
+                  >
+                    ▶ Enable timeline
+                  </button>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-gray-300">{formatCursor(timeCursor)}</span>
+                      <button
+                        onClick={() => setPlaying(p => !p)}
+                        className="text-[10px] px-2 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-white"
+                      >
+                        {playing ? '❚❚ pause' : '▶ play'}
+                      </button>
+                    </div>
+                    <input
+                      type="range"
+                      min={timeRange.min}
+                      max={timeRange.max}
+                      step={MS_PER_DAY}
+                      value={timeCursor}
+                      onChange={(e) => { setPlaying(false); setTimeCursor(Number(e.target.value)); }}
+                      className="w-full accent-blue-500"
+                    />
+                    <div className="flex justify-between text-[9px] text-gray-500 mt-0.5">
+                      <span>{formatCursor(timeRange.min)}</span>
+                      <span>{formatCursor(timeRange.max)}</span>
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      nodes appear on their event date, fade over {FADE_WINDOW_DAYS} days, then their edges drop
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-          </div>
+          )}
 
           {/* Topology filter: K-core decomposition */}
           <div>
@@ -445,6 +548,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           onNodeClick={setSelectedNode}
           highlightedNodes={highlightedNodes}
           highlightedEdgeKeys={highlightedEdgeKeys}
+          nodeOpacity={nodeOpacity}
           spread={spread}
           edgeLabelMode={edgeLabelMode}
         />
@@ -478,6 +582,40 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                 ✕
               </button>
             </div>
+
+            {/* Rich node detail (all_info) from the companion node table */}
+            {(() => {
+              const rec = nodeData?.get(selectedNode);
+              if (!rec) return null;
+              const allInfo = rec.all_info ?? rec.info;
+              const label = rec.label;
+              const category = rec.category;
+              return (
+                <div className="rounded bg-gray-800/40 border border-gray-700 overflow-hidden">
+                  {(label != null || category != null) && (
+                    <div className="px-2 py-1.5 border-b border-gray-700 flex items-center gap-2">
+                      {label != null && (
+                        <span className="text-xs font-semibold text-gray-200 truncate">{String(label)}</span>
+                      )}
+                      {category != null && (
+                        <span className="text-[9px] uppercase tracking-wider text-emerald-400">{String(category)}</span>
+                      )}
+                    </div>
+                  )}
+                  {typeof allInfo === 'string' && allInfo.trim() ? (
+                    <div
+                      className="node-all-info p-2 text-xs text-gray-300 max-h-[40vh] overflow-y-auto"
+                      // all_info is pre-formatted HTML produced by the pipeline
+                      // (bold/colored spans, lists, <img> thumbnails). It comes
+                      // from the user's own data file, not a remote source.
+                      dangerouslySetInnerHTML={{ __html: String(allInfo) }}
+                    />
+                  ) : (
+                    <div className="p-2 text-[10px] text-gray-500">No additional info for this node.</div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Chain controls */}
             <div className={`rounded p-2 ${chainDepth > 0 ? 'bg-blue-950/30 border border-blue-900' : 'bg-gray-800/40'}`}>
