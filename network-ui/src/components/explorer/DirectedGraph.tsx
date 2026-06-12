@@ -14,6 +14,9 @@ interface Props {
   highlightedNodes?: Set<string> | null;
   /** When non-null, mark these "src|||tgt" edges as the active chain (cyan). */
   highlightedEdgeKeys?: Set<string> | null;
+  /** When non-null, per-node timeline opacity (0..1) keyed by node id. Nodes
+   *  absent from the map (or the whole map being null) are treated as opacity 1. */
+  nodeOpacity?: Map<string, number> | null;
   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
   spread?: number;
   /**
@@ -89,6 +92,7 @@ export default function DirectedGraph({
   onNodeClick,
   highlightedNodes = null,
   highlightedEdgeKeys = null,
+  nodeOpacity = null,
   spread = 1.0,
   edgeLabelMode = 'auto',
 }: Props) {
@@ -260,7 +264,7 @@ export default function DirectedGraph({
       .data(graph.links)
       .join('line')
       .attr('stroke', '#9ca3af')
-      .attr('opacity', 0.7) // initial; selection effect overrides per-edge
+      .attr('stroke-opacity', 0.6) // initial; selection effect overrides per-edge
       .attr('stroke-width', l => weightScale(l.weight))
       .attr('marker-end', 'url(#arrow)');
 
@@ -269,6 +273,10 @@ export default function DirectedGraph({
     //   · a label field is mapped and some links actually have text
     //   · mode allows it (auto = density cap, on = always, off = never)
     const EDGE_LABEL_DENSITY_CAP = 500;
+   /* Keeping incase conflict: Merge of code segment
+      const showEdgeLabels = !!mapping.edgeLabelField &&
+      graph.links.some(l => l.label) &&
+      graph.links.length <= EDGE_LABEL_DENSITY_CAP;*/
     const labelsAvailable = !!mapping.edgeLabelField && graph.links.some(l => l.label);
     const showEdgeLabels = labelsAvailable && (
       edgeLabelMode === 'on'
@@ -386,6 +394,8 @@ export default function DirectedGraph({
         }
         if (mapping.edgeWeightField) lines.push(`<em style="color:#9ca3af">${escapeHTML(mapping.edgeWeightField)}:</em> ${l.weight}`);
 
+        /* Another merge of code segment */
+        //const skip = new Set([mapping.sourceField, mapping.targetField, mapping.edgeLabelField].filter(Boolean) as string[]);
         const skip = new Set([
           mapping.sourceField,
           mapping.targetField,
@@ -482,7 +492,7 @@ export default function DirectedGraph({
       simRef.current = null;
       tooltip.remove();
     };
-  }, [graph, colorScale, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode]);
+  }, [graph, colorScale, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode]); // Kept edgeLabelModel
   // selectedNode handled by a separate effect below to avoid restarting the simulation on selection
 
   // Spread control — retune the existing simulation's link/charge forces
@@ -507,6 +517,16 @@ export default function DirectedGraph({
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
 
+    // Timeline opacity for a node id (1 when timeline off or id undated).
+    const timeOpacity = (id: string): number => {
+      if (!nodeOpacity) return 1;
+      const v = nodeOpacity.get(id);
+      return v === undefined ? 1 : v;
+    };
+    // A node is considered "gone" (fully faded) below this threshold; its
+    // edges are then hidden entirely.
+    const GONE = 0.02;
+
     const isLinkInChain = (l: Link): boolean => {
       if (!highlightedEdgeKeys) return false;
       return highlightedEdgeKeys.has(l.edgeKey);
@@ -518,6 +538,15 @@ export default function DirectedGraph({
       const sId = typeof l.source === 'string' ? l.source : l.source.id;
       const tId = typeof l.target === 'string' ? l.target : l.target.id;
       return highlightedNodes.has(sId) && highlightedNodes.has(tId);
+    };
+    // Edge timeline opacity = min of endpoints; 0 (hidden) if either is gone.
+    const linkTimeOpacity = (l: Link): number => {
+      const sId = typeof l.source === 'string' ? l.source : l.source.id;
+      const tId = typeof l.target === 'string' ? l.target : l.target.id;
+      const so = timeOpacity(sId);
+      const to = timeOpacity(tId);
+      const m = Math.min(so, to);
+      return m < GONE ? 0 : m;
     };
 
     // The "interactive subnetwork" is wider than the visual highlight: it
@@ -552,8 +581,8 @@ export default function DirectedGraph({
     svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
       .attr('stroke', d => d.id === selectedNode ? '#06b6d4' : '#fff')
       .attr('stroke-width', d => d.id === selectedNode ? 3 : 1)
-      .attr('opacity', d => isNodeInteractive(d.id) ? 1 : 0.12);
-
+      .attr('opacity', d => isNodeInteractive(d.id) ? 1 : 0.12 * timeOpacity(d.id)); // Multiplied by time for timeline
+    
     // Node labels: hide entirely on out-of-focus nodes (display:none rather
     // than just fading), so the focused subnetwork's labels read cleanly
     // without leftover ghost text from the background.
@@ -568,6 +597,10 @@ export default function DirectedGraph({
     svg.selectAll<SVGGElement, Node>('g.nodes > g')
       .style('pointer-events', d => isNodeInteractive(d.id) ? null : 'none');
 
+    // Hide pointer events on fully-faded nodes so you can't click ghosts.
+    svg.selectAll<SVGGElement, Node>('g.nodes g')
+      .style('pointer-events', d => timeOpacity(d.id) < GONE ? 'none' : 'auto');
+
     svg.selectAll<SVGLineElement, Link>('g.links line')
       .attr('stroke', l => {
         // Chain edge wins
@@ -578,25 +611,30 @@ export default function DirectedGraph({
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
         return sId === selectedNode || tId === selectedNode ? '#06b6d4' : '#374151';
       })
-      // `opacity` rather than `stroke-opacity` so that the dimming applies to
-      // the marker-end arrowhead too — `stroke-opacity` only touches the line
-      // itself, leaving solid arrowheads floating on top of dimmed edges.
-      .attr('opacity', l => {
-        if (isLinkInChain(l)) return 1;
-        if (highlightedNodes) return linkInHighlight(l) ? 0.7 : 0.05;
-        if (!selectedNode) return 0.7;
-        const sId = typeof l.source === 'string' ? l.source : l.source.id;
-        const tId = typeof l.target === 'string' ? l.target : l.target.id;
-        return sId === selectedNode || tId === selectedNode ? 1 : 0.1;
+      .attr('stroke-opacity', l => {
+        const t = linkTimeOpacity(l);
+        if (t === 0) return 0;
+        let base: number;
+        if (isLinkInChain(l)) base = 1;
+        else if (highlightedNodes) base = linkInHighlight(l) ? 0.6 : 0.05;
+        else if (!selectedNode) base = 0.6;
+        else {
+          const sId = typeof l.source === 'string' ? l.source : l.source.id;
+          const tId = typeof l.target === 'string' ? l.target : l.target.id;
+          base = sId === selectedNode || tId === selectedNode ? 1 : 0.15;
+        }
+        return base * t;
       })
       .attr('marker-end', l => {
+        if (linkTimeOpacity(l) === 0) return null;
         if (isLinkInChain(l)) return 'url(#arrow-selected)';
         if (highlightedNodes && !linkInHighlight(l)) return 'url(#arrow)';
         if (!selectedNode) return 'url(#arrow)';
         const sId = typeof l.source === 'string' ? l.source : l.source.id;
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
         return sId === selectedNode || tId === selectedNode ? 'url(#arrow-selected)' : 'url(#arrow)';
-      })
+      });
+
       .style('pointer-events', l => isLinkInteractive(l) ? null : 'none');
 
     // Edge labels — visibility follows the focus subnetwork. When a node is
@@ -610,12 +648,17 @@ export default function DirectedGraph({
         if (isLinkInteractive(l)) return null; // edges in focus subnetwork keep theirs
         return 'none';                          // everything else hidden
       })
+      
+    // Edge labels visibility follows the link (and its timeline opacity)
+    svg.selectAll<SVGTextElement, Link>('g.edge-labels text')
       .attr('opacity', l => {
-        if (isLinkInChain(l)) return 1;
-        if (highlightedNodes) return linkInHighlight(l) ? 0.9 : 0.05;
-        return 0.9;
+        const t = linkTimeOpacity(l);
+        if (t === 0) return 0;
+        if (isLinkInChain(l)) return 1 * t;
+        if (highlightedNodes) return (linkInHighlight(l) ? 0.9 : 0.05) * t;
+        return 0.9 * t;
       });
-  }, [selectedNode, highlightedNodes, highlightedEdgeKeys]);
+  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity]);
 
   // Legend for color scale
   const legendItems = useMemo(() => {
@@ -630,7 +673,7 @@ export default function DirectedGraph({
         <div className="text-gray-400">
           {graph.nodes.length} nodes · {graph.links.length} edges
         </div>
-        {mapping.edgeLabelField && edgeLabelMode === 'auto' && graph.links.length > 500 && (
+        {mapping.edgeLabelField && graph.links.length > 500 && (
           <div className="text-amber-400/80 text-[10px] mt-1">
             edge labels auto-hidden ({'>'}500 edges) — toggle "on" in Layout to force
           </div>
