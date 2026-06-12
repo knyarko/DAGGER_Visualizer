@@ -13,19 +13,9 @@ const BASE = import.meta.env.BASE_URL;
 
 const SAMPLES: SampleDataset[] = [
   {
-    label: 'GoT Battles (CSV)',
-    url: `${BASE}samples/got_battles.csv`,
-    description: '20 battles · attacker → defender · 9 fields',
-  },
-  {
-    label: 'Email Traffic (CSV)',
-    url: `${BASE}samples/email_traffic.csv`,
-    description: '20 emails · sender → recipient · 7 fields',
-  },
-  {
-    label: 'LotR Interactions (JSON)',
-    url: `${BASE}samples/character_interactions.json`,
-    description: '25 interactions · from → to · 6 fields',
+    label: 'Crisis MD Causal Triplets (JSON)',
+    url: `${BASE}samples/Causal_Relationship_Graph_Viz.json`,
+    description: 'Sample of Crisis MMD causal relationships by triplets ( Subject → Predicate → Object ). · The CrisisMMD multimodal Twitter dataset consists of several thousands of manually annotated tweets and images collected during seven major natural disasters including earthquakes, hurricanes, wildfires, and floods that happened in the year 2017 across different parts of the World.',
   },
 ];
 
