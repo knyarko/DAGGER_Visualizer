@@ -26,6 +26,7 @@ backup_before_*/
 
 # Data directories
 # data/ - INCLUDED for deployment (contains document text files)
+data/
 analysis/extracted/
 
 # Analysis scripts and temp files (not needed for deployment)
