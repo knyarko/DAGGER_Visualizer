@@ -11,6 +11,7 @@ network-ui/build/
 .env
 .env.local
 .env.production
+venv/
 
 # Database files (but keep the main database)
 *.db-shm

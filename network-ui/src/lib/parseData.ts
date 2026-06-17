@@ -260,6 +260,16 @@ export interface DatasetOption {
   description: string;       // one-line summary (row/field counts, join key, …)
   dataset: ParsedDataset;
   recommended?: boolean;     // hint for the UI
+  // Auto-join: when the source file is a graph object with BOTH a node array
+  // and an edge array, the edge option carries the node array here as a lookup
+  // keyed by node id. This lets the graph render from edges while still having
+  // access to rich per-node attributes (all_info, timestamp, category, …) for
+  // the detail panel and timeline. Undefined for plain arrays / CSVs.
+  companionNodes?: {
+    byId: Map<string, Record<string, unknown>>;  // node id → full (unflattened) node record
+    idField: string;                              // which field held the node id
+    rawNodes: Record<string, unknown>[];          // all node records (unflattened)
+  };
 }
 
 // Priority order used to pick a recommended default array when a JSON object
@@ -377,6 +387,58 @@ function makeArrayOption(key: string, items: Record<string, unknown>[], fileName
   };
 }
 
+// Candidate field names that typically hold a node's unique id. Checked in
+// order; first one present on the majority of records wins.
+const NODE_ID_FIELD_CANDIDATES = ['node', 'id', 'node_id', 'nodeId', 'name', 'key'];
+
+// Heuristic: which array key looks like a node table vs. an edge table.
+// Edge tables almost always carry source/target-ish fields; node tables don't.
+const EDGE_KEY_NAMES = new Set(['edges', 'links', 'relationships']);
+const NODE_KEY_NAMES = new Set(['nodes', 'vertices', 'entities']);
+
+function findNodeIdField(items: Record<string, unknown>[]): string | null {
+  if (items.length === 0) return null;
+  const sample = items.slice(0, Math.min(items.length, 50));
+  for (const cand of NODE_ID_FIELD_CANDIDATES) {
+    const present = sample.filter(r => {
+      const v = r[cand];
+      return v !== null && v !== undefined && v !== '';
+    }).length;
+    if (present >= sample.length * 0.9) return cand;
+  }
+  return null;
+}
+
+function looksLikeEdgeArray(key: string, items: Record<string, unknown>[]): boolean {
+  if (EDGE_KEY_NAMES.has(key.toLowerCase())) return true;
+  if (NODE_KEY_NAMES.has(key.toLowerCase())) return false;
+  const sample = items.slice(0, Math.min(items.length, 20));
+  const hasSrcTgt = sample.some(r =>
+    ('source' in r || 'src' in r || 'from' in r) &&
+    ('target' in r || 'dst' in r || 'to' in r),
+  );
+  return hasSrcTgt;
+}
+
+// Build the companion-node lookup from a node array and attach it to an edge
+// option. Returns the same option (mutated) for chaining convenience.
+function attachCompanionNodes(
+  edgeOption: DatasetOption,
+  nodeItems: Record<string, unknown>[],
+): DatasetOption {
+  const idField = findNodeIdField(nodeItems);
+  if (!idField) return edgeOption;
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const n of nodeItems) {
+    const idv = n[idField];
+    if (idv === null || idv === undefined || idv === '') continue;
+    byId.set(String(idv), n);  // keep UNFLATTENED so all_info HTML stays intact
+  }
+  if (byId.size === 0) return edgeOption;
+  edgeOption.companionNodes = { byId, idField, rawNodes: nodeItems };
+  return edgeOption;
+}
+
 /**
  * Parse a file into one or more dataset options. Behaviour:
  *  - CSV → single option (just the rows).
@@ -428,6 +490,30 @@ export async function parseFileToOptions(file: File): Promise<DatasetOption[]> {
   }
   if (arrays.length === 0) throw new Error('No arrays of objects found in JSON');
 
+  // ── Auto-join: graph files shaped like { nodes: [...], edges: [...] } ───────
+  // Identify the node array and the edge array. When we have both, the edge
+  // array becomes the recommended default (that's what draws the graph) and we
+  // attach the node array to it as a lookup so the detail panel + timeline can
+  // read per-node attributes (all_info, timestamp, …).
+  const edgeArrays = arrays.filter(a => looksLikeEdgeArray(a.key, a.items));
+  const nodeArrays = arrays.filter(a => !looksLikeEdgeArray(a.key, a.items) && findNodeIdField(a.items));
+
+  const opts = arrays.map(a => makeArrayOption(a.key, a.items, file.name, false));
+
+  if (edgeArrays.length >= 1 && nodeArrays.length >= 1) {
+    // Pick the first edge array as the join target, first node array as the source.
+    const edgeKey = edgeArrays[0].key;
+    const nodeItems = nodeArrays[0].items;
+    const edgeOpt = opts.find(o => o.id === `array:${edgeKey}`);
+    if (edgeOpt) {
+      attachCompanionNodes(edgeOpt, nodeItems);
+      edgeOpt.recommended = true;
+      edgeOpt.description += ' · +node data';
+      return [edgeOpt, ...opts.filter(o => o !== edgeOpt)];
+    }
+  }
+
+  // ── Fallback: original behaviour (no clean node/edge split) ────────────────
   // Decide which array is the recommended default — prefer well-known edge-list
   // keys, otherwise fall back to the first array in document order.
   const preferred = PREFERRED_ARRAY_KEYS.map(k => arrays.findIndex(a => a.key === k)).find(i => i >= 0);
