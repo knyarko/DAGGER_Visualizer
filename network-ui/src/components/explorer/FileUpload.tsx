@@ -17,6 +17,11 @@ const SAMPLES: SampleDataset[] = [
     url: `${BASE}samples/Causal_Relationship_Graph_Viz.json`,
     description: 'Sample of Crisis MMD causal relationships by triplets ( Subject → Predicate → Object ). · The CrisisMMD multimodal Twitter dataset consists of several thousands of manually annotated tweets and images collected during seven major natural disasters including earthquakes, hurricanes, wildfires, and floods that happened in the year 2017 across different parts of the World.',
   },
+  {
+    label: 'Cyber Attack Chain (JSON, exemplar)',
+    url: `${BASE}samples/cyber_attack_chain.json`,
+    description: '24 nodes + 31 edges · {nodes, edges} template · ATT&CK-style kill chain',
+  },
 ];
 
 interface Props {
