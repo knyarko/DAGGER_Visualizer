@@ -17,6 +17,11 @@ const SAMPLES: SampleDataset[] = [
     url: `${BASE}samples/Causal_Relationship_Graph_Viz.json`,
     description: 'Sample of Crisis MMD causal relationships by triplets ( Subject → Predicate → Object ). · The CrisisMMD multimodal Twitter dataset consists of several thousands of manually annotated tweets and images collected during seven major natural disasters including earthquakes, hurricanes, wildfires, and floods that happened in the year 2017 across different parts of the World.',
   },
+  {
+    label: `Synthetic Data for Timeline View (JSON)`,
+    url: `${BASE}samples/Timeline_Demo_Viz.json`,
+    description: 'This dataset is a synthetic dataset that is used to demonstrate the timeline view of the network explorer.',
+  },
 ];
 
 interface Props {
