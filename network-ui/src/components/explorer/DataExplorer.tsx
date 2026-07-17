@@ -7,7 +7,7 @@ import type { DatasetOption } from '../../lib/parseData';
 import { suggestMapping, type FilterMap, type VisualMapping } from '../../lib/mapping';
 import { enumerateChains, reachableWithin, chainToEdgeKeys } from '../../lib/chains';
 import { buildLabel, BUILD_SHA_FULL, BUILD_TIME } from '../../lib/buildInfo';
-import { computeTimeRange, buildOpacityMap, formatCursor, FADE_WINDOW_DAYS } from '../../lib/timeline';
+import { computeTimeRange, buildOpacityMap, formatCursor, fadeDurationToMs, DEFAULT_FADE_DURATION, MS_PER_MINUTE, type FadeDuration } from '../../lib/timeline';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -121,15 +121,16 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   // Visual layout: spread is a multiplier on link distance + charge repulsion.
   // 1.0 = packed default; higher values pull dense clusters apart.
   const [spread, setSpread] = useState(1.0);
-  // Confidence threshold (0–1): edges with probability below this are hidden.
-  // null = off (all edges shown regardless of confidence).
-  const [confidenceMin, setConfidenceMin] = useState<number>(0);
   // Timeline: cursor is the current "time" in epoch ms. null = timeline off
   // (all nodes shown regardless of date). Enabled only when the selected
   // option carries companion node data with resolvable dates.
   const [timeCursor, setTimeCursor] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const playRef = useRef<number | null>(null);
+  // Persistence window: how long a node stays before it disappears. Adjustable
+  // in years/months/days/hours/minutes; default 30 days (= previous behaviour).
+  const [fadeDuration, setFadeDuration] = useState<FadeDuration>(DEFAULT_FADE_DURATION);
+  const fadeWindowMs = useMemo(() => fadeDurationToMs(fadeDuration), [fadeDuration]);
   // Edge label visibility: 'auto' (show below density cap), 'on', or 'off'.
   const [edgeLabelMode, setEdgeLabelMode] = useState<'auto' | 'on' | 'off'>('auto');
 
@@ -149,8 +150,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   // Timeline span derived from node event dates. hasDates=false → no slider.
   const timeRange = useMemo(() => {
     if (!nodeData) return { min: 0, max: 0, hasDates: false };
-    return computeTimeRange(nodeData);
-  }, [nodeData]);
+    return computeTimeRange(nodeData, fadeWindowMs);
+  }, [nodeData, fadeWindowMs]);
 
   const handleLoaded = (opts: DatasetOption[], fileName: string) => {
     setOptions(opts);
@@ -253,12 +254,10 @@ export default function DataExplorer({ onSwitchMode }: Props) {
 
   // Per-node opacity for the current timeline cursor. null when timeline is
   // off or there are no dates — DirectedGraph treats null as "all visible".
-  // buildOpacityMap emits keys under every candidate id field (node, label, …)
-  // so the lookup matches whether the graph is drawn by backend id or by label.
   const nodeOpacity = useMemo<Map<string, number> | null>(() => {
-    if (timeCursor === null || !nodeData || !timeRange.hasDates || !mapping) return null;
-    return buildOpacityMap(nodeData, timeCursor, [mapping.sourceField, mapping.targetField]);
-  }, [timeCursor, nodeData, timeRange.hasDates, mapping]);
+    if (timeCursor === null || !nodeData || !timeRange.hasDates) return null;
+    return buildOpacityMap(nodeData, timeCursor, fadeWindowMs);
+  }, [timeCursor, nodeData, timeRange.hasDates, fadeWindowMs]);
 
   // Playback: advance the cursor ~1.5% of the span per frame (~throttled to a
   // step) until it reaches the end, then stop. Step granularity is one day so
@@ -266,7 +265,9 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   useEffect(() => {
     if (!playing || timeRange.hasDates === false) return;
     const span = timeRange.max - timeRange.min;
-    const step = Math.max(MS_PER_DAY, span / 240); // ~240 frames end-to-end
+    // ~480 frames end-to-end, but never coarser than 1/8 of the persistence
+    // window (so even a short fade is sampled), floored at 1 minute.
+    const step = Math.max(MS_PER_MINUTE, Math.min(span / 480, fadeWindowMs / 8));
     const tick = () => {
       setTimeCursor(prev => {
         const cur = prev === null ? timeRange.min : prev;
@@ -283,7 +284,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     return () => {
       if (playRef.current !== null) window.clearTimeout(playRef.current);
     };
-  }, [playing, timeRange]);
+  }, [playing, timeRange, fadeWindowMs]);
 
   const enableTimeline = useCallback(() => {
     if (!timeRange.hasDates) return;
@@ -295,6 +296,11 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     setPlaying(false);
   }, []);
 
+  // Update one field of the persistence duration (clamped to a non-negative int).
+  const setFadePart = useCallback((key: keyof FadeDuration, value: number) => {
+    setFadeDuration(prev => ({ ...prev, [key]: Math.max(0, Math.floor(Number(value) || 0)) }));
+  }, []);
+
   if (!options || !dataset || !mapping || !selectedOptionId) {
     return (
       <div className="relative">
@@ -304,7 +310,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
             onClick={onSwitchMode}
             className="absolute top-4 right-4 text-xs text-gray-400 hover:text-white px-3 py-1.5 border border-gray-700 rounded"
           >
-
+            Open Epstein viewer →
           </button>
         )}
       </div>
@@ -426,45 +432,6 @@ export default function DataExplorer({ onSwitchMode }: Props) {
             </div>
           </div>
 
-          {/* Confidence filter: hide edges below the probability threshold */}
-          <div>
-            <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400">Confidence</h2>
-              {confidenceMin > 0 && (
-                <button
-                  onClick={() => setConfidenceMin(0)}
-                  className="text-[10px] text-gray-400 hover:text-white"
-                >
-                  reset
-                </button>
-              )}
-            </div>
-            <div className={`rounded p-2 ${confidenceMin > 0 ? 'bg-blue-950/30 border border-blue-900' : 'bg-gray-800/40'}`}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-300">Min probability</span>
-                <span className="text-xs font-semibold text-gray-200">{(confidenceMin * 100).toFixed(0)}%</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={confidenceMin}
-                onChange={(e) => setConfidenceMin(Number(e.target.value))}
-                className="w-full accent-blue-500"
-              />
-              <div className="flex justify-between text-[9px] text-gray-500 mt-0.5">
-                <span>show all</span>
-                <span>high confidence only</span>
-              </div>
-              {confidenceMin > 0 && (
-                <div className="text-[10px] text-gray-500 mt-1">
-                  hiding edges with probability &lt; {(confidenceMin * 100).toFixed(0)}%
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Edge labels: auto (show below density cap) / on / off */}
           <div>
             <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 border-b border-gray-700 pb-2 mb-3">
@@ -512,7 +479,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                 ) : (
                   <>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-gray-300">{formatCursor(timeCursor)}</span>
+                      <span className="text-xs font-semibold text-gray-300">{formatCursor(timeCursor, fadeWindowMs)}</span>
                       <button
                         onClick={() => setPlaying(p => !p)}
                         className="text-[10px] px-2 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-white"
@@ -524,17 +491,45 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                       type="range"
                       min={timeRange.min}
                       max={timeRange.max}
-                      step={MS_PER_DAY}
+                      step={Math.max(MS_PER_MINUTE, Math.min(MS_PER_DAY, fadeWindowMs / 20))}
                       value={timeCursor}
                       onChange={(e) => { setPlaying(false); setTimeCursor(Number(e.target.value)); }}
                       className="w-full accent-blue-500"
                     />
                     <div className="flex justify-between text-[9px] text-gray-500 mt-0.5">
-                      <span>{formatCursor(timeRange.min)}</span>
-                      <span>{formatCursor(timeRange.max)}</span>
+                      <span>{formatCursor(timeRange.min, fadeWindowMs)}</span>
+                      <span>{formatCursor(timeRange.max, fadeWindowMs)}</span>
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-1">
-                      nodes appear on their event date, fade over {FADE_WINDOW_DAYS} days, then their edges drop
+
+                    {/* Persistence window: how long a node stays before it disappears */}
+                    <div className="mt-3 pt-2 border-t border-gray-700/60">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                        Disappears after
+                      </div>
+                      <div className="grid grid-cols-5 gap-1">
+                        {([
+                          ['years', 'y'],
+                          ['months', 'mo'],
+                          ['days', 'd'],
+                          ['hours', 'h'],
+                          ['minutes', 'm'],
+                        ] as [keyof FadeDuration, string][]).map(([key, label]) => (
+                          <label key={key} className="flex flex-col items-center">
+                            <input
+                              type="number"
+                              min={0}
+                              value={fadeDuration[key]}
+                              onChange={(e) => setFadePart(key, Number(e.target.value))}
+                              className="w-full text-center text-[11px] px-0.5 py-1 rounded bg-gray-900 border border-gray-700 text-gray-200 focus:border-blue-500 focus:outline-none"
+                            />
+                            <span className="text-[9px] text-gray-500 mt-0.5">{label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-gray-500 mt-2">
+                      nodes appear on their event date, stay for the window above, fade out, then their edges drop
                     </div>
                   </>
                 )}
@@ -603,7 +598,6 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           highlightedNodes={highlightedNodes}
           highlightedEdgeKeys={highlightedEdgeKeys}
           nodeOpacity={nodeOpacity}
-          confidenceMin={confidenceMin > 0 ? confidenceMin : null}
           spread={spread}
           edgeLabelMode={edgeLabelMode}
         />
