@@ -7,7 +7,7 @@ import type { DatasetOption } from '../../lib/parseData';
 import { suggestMapping, type FilterMap, type VisualMapping } from '../../lib/mapping';
 import { enumerateChains, reachableWithin, chainToEdgeKeys } from '../../lib/chains';
 import { buildLabel, BUILD_SHA_FULL, BUILD_TIME } from '../../lib/buildInfo';
-import { computeTimeRange, buildOpacityMap, formatCursor, fadeDurationToMs, DEFAULT_FADE_DURATION, MS_PER_MINUTE, type FadeDuration } from '../../lib/timeline';
+import { computeTimeRange, buildOpacityMap, buildRowDateLookup, formatCursor, fadeDurationToMs, DEFAULT_FADE_DURATION, MS_PER_MINUTE, type FadeDuration } from '../../lib/timeline';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -141,11 +141,24 @@ export default function DataExplorer({ onSwitchMode }: Props) {
 
   const dataset = useMemo(() => selectedOption?.dataset ?? null, [selectedOption]);
 
-  // Companion node lookup (id → unflattened node record) from the auto-join.
-  const nodeData = useMemo(
-    () => selectedOption?.companionNodes?.byId ?? null,
-    [selectedOption],
-  );
+  // Timeline date source, keyed by graph node id:
+  //   1. Edge array: the auto-joined companion node lookup carries the dates
+  //      (edges themselves are undated), keyed by node id = source/target.
+  //   2. Any other array (e.g. the raw node/triple array drawn subject→object):
+  //      dates live on each row, so key by the current source/target values and
+  //      take each entity's earliest-dated row.
+  const nodeData = useMemo<Map<string, Record<string, unknown>> | null>(() => {
+    const companion = selectedOption?.companionNodes?.byId;
+    if (companion && companion.size > 0) return companion;
+    if (dataset && mapping) {
+      const idFields = [mapping.sourceField, mapping.targetField].filter(Boolean);
+      if (idFields.length > 0) {
+        const lookup = buildRowDateLookup(dataset.rows, idFields);
+        if (lookup.size > 0) return lookup;
+      }
+    }
+    return null;
+  }, [selectedOption, dataset, mapping]);
 
   // Timeline span derived from node event dates. hasDates=false → no slider.
   const timeRange = useMemo(() => {

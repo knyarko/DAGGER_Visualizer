@@ -185,6 +185,40 @@ export function buildOpacityMap(
   return out;
 }
 
+/**
+ * For datasets where the event date lives on each ROW (e.g. a node/triple
+ * array whose graph is drawn from subject→object) rather than in a companion
+ * node lookup, build a Map<graphNodeId, record> suitable for computeTimeRange
+ * and buildOpacityMap.
+ *
+ * `idFields` are the fields whose values are the graph's node ids — normally
+ * the current mapping's source and target fields. Each id is associated with
+ * the EARLIEST-dated row that mentions it, so an entity "appears" the first
+ * time it shows up and fades from there. Rows with no resolvable date are
+ * skipped; ids that only ever appear in undated rows are omitted (and so stay
+ * always-visible, matching the null-date convention elsewhere).
+ */
+export function buildRowDateLookup(
+  rows: Record<string, unknown>[],
+  idFields: string[],
+): Map<string, Record<string, unknown>> {
+  const best = new Map<string, { rec: Record<string, unknown>; t: number }>();
+  for (const row of rows) {
+    const t = nodeEventDate(row);
+    if (t === null) continue;
+    for (const f of idFields) {
+      const v = row[f];
+      if (v === null || v === undefined || v === '') continue;
+      const id = String(v);
+      const cur = best.get(id);
+      if (!cur || t < cur.t) best.set(id, { rec: row, t });
+    }
+  }
+  const out = new Map<string, Record<string, unknown>>();
+  for (const [id, entry] of best) out.set(id, entry.rec);
+  return out;
+}
+
 // A short human label for a cursor time, e.g. "Sep 20, 2017". When the
 // persistence window is under a day, the time of day is appended so short
 // fades read meaningfully on the slider.
