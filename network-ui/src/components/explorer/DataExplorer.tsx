@@ -121,6 +121,9 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   // Visual layout: spread is a multiplier on link distance + charge repulsion.
   // 1.0 = packed default; higher values pull dense clusters apart.
   const [spread, setSpread] = useState(1.0);
+  // Confidence threshold (0–1): edges with probability below this are hidden.
+  // null = off (all edges shown regardless of confidence).
+  const [confidenceMin, setConfidenceMin] = useState<number>(0);
   // Timeline: cursor is the current "time" in epoch ms. null = timeline off
   // (all nodes shown regardless of date). Enabled only when the selected
   // option carries companion node data with resolvable dates.
@@ -250,10 +253,12 @@ export default function DataExplorer({ onSwitchMode }: Props) {
 
   // Per-node opacity for the current timeline cursor. null when timeline is
   // off or there are no dates — DirectedGraph treats null as "all visible".
+  // buildOpacityMap emits keys under every candidate id field (node, label, …)
+  // so the lookup matches whether the graph is drawn by backend id or by label.
   const nodeOpacity = useMemo<Map<string, number> | null>(() => {
-    if (timeCursor === null || !nodeData || !timeRange.hasDates) return null;
-    return buildOpacityMap(nodeData, timeCursor);
-  }, [timeCursor, nodeData, timeRange.hasDates]);
+    if (timeCursor === null || !nodeData || !timeRange.hasDates || !mapping) return null;
+    return buildOpacityMap(nodeData, timeCursor, [mapping.sourceField, mapping.targetField]);
+  }, [timeCursor, nodeData, timeRange.hasDates, mapping]);
 
   // Playback: advance the cursor ~1.5% of the span per frame (~throttled to a
   // step) until it reaches the end, then stop. Step granularity is one day so
@@ -299,7 +304,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
             onClick={onSwitchMode}
             className="absolute top-4 right-4 text-xs text-gray-400 hover:text-white px-3 py-1.5 border border-gray-700 rounded"
           >
-            Open Epstein viewer →
+
           </button>
         )}
       </div>
@@ -418,6 +423,45 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                 <span>compact</span>
                 <span>spread out</span>
               </div>
+            </div>
+          </div>
+
+          {/* Confidence filter: hide edges below the probability threshold */}
+          <div>
+            <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400">Confidence</h2>
+              {confidenceMin > 0 && (
+                <button
+                  onClick={() => setConfidenceMin(0)}
+                  className="text-[10px] text-gray-400 hover:text-white"
+                >
+                  reset
+                </button>
+              )}
+            </div>
+            <div className={`rounded p-2 ${confidenceMin > 0 ? 'bg-blue-950/30 border border-blue-900' : 'bg-gray-800/40'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-300">Min probability</span>
+                <span className="text-xs font-semibold text-gray-200">{(confidenceMin * 100).toFixed(0)}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={confidenceMin}
+                onChange={(e) => setConfidenceMin(Number(e.target.value))}
+                className="w-full accent-blue-500"
+              />
+              <div className="flex justify-between text-[9px] text-gray-500 mt-0.5">
+                <span>show all</span>
+                <span>high confidence only</span>
+              </div>
+              {confidenceMin > 0 && (
+                <div className="text-[10px] text-gray-500 mt-1">
+                  hiding edges with probability &lt; {(confidenceMin * 100).toFixed(0)}%
+                </div>
+              )}
             </div>
           </div>
 
@@ -559,6 +603,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           highlightedNodes={highlightedNodes}
           highlightedEdgeKeys={highlightedEdgeKeys}
           nodeOpacity={nodeOpacity}
+          confidenceMin={confidenceMin > 0 ? confidenceMin : null}
           spread={spread}
           edgeLabelMode={edgeLabelMode}
         />

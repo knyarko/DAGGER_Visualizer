@@ -17,6 +17,9 @@ interface Props {
   /** When non-null, per-node timeline opacity (0..1) keyed by node id. Nodes
    *  absent from the map (or the whole map being null) are treated as opacity 1. */
   nodeOpacity?: Map<string, number> | null;
+  /** Minimum confidence threshold (0–1). Nodes whose companion record has
+   *  confidence below this value are hidden along with their edges. */
+  confidenceMin?: number | null;
   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
   spread?: number;
   /**
@@ -71,6 +74,31 @@ function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }
 
+// Build a human-readable edge label from a raw edge row.
+// Priority:
+//   1. triplet_a + triplet_b combined as "A → B" (causal edges from DAGGER)
+//   2. The mapped edgeLabelField value
+// The result is truncated to EDGE_LABEL_MAX chars so it doesn't flood the canvas.
+const EDGE_LABEL_MAX = 60;
+const EDGE_LABEL_HALF = Math.floor((EDGE_LABEL_MAX - 3) / 2); // chars per side for combined label
+
+function buildEdgeLabel(row: Record<string, unknown>, edgeLabelField: string | null): string {
+  const a = row['triplet_a'];
+  const b = row['triplet_b'];
+  if (typeof a === 'string' && a.trim() && typeof b === 'string' && b.trim()) {
+    // Combine both triplets: truncate each half independently so neither dominates
+    return truncate(a.trim(), EDGE_LABEL_HALF) + ' → ' + truncate(b.trim(), EDGE_LABEL_HALF);
+  }
+  if (typeof a === 'string' && a.trim()) {
+    return truncate(a.trim(), EDGE_LABEL_MAX);
+  }
+  if (edgeLabelField) {
+    const v = row[edgeLabelField];
+    if (v !== null && v !== undefined && v !== '') return truncate(fmt(v), EDGE_LABEL_MAX);
+  }
+  return '';
+}
+
 // Field names treated as long-form explanatory text — pinned to the top of
 // tooltips regardless of column position, and allowed more characters before
 // truncation.
@@ -93,6 +121,7 @@ export default function DirectedGraph({
   highlightedNodes = null,
   highlightedEdgeKeys = null,
   nodeOpacity = null,
+  confidenceMin = null,
   spread = 1.0,
   edgeLabelMode = 'auto',
 }: Props) {
@@ -120,6 +149,16 @@ export default function DirectedGraph({
       const tgt = row[targetField];
       if (src === null || src === undefined || src === '') continue;
       if (tgt === null || tgt === undefined || tgt === '') continue;
+
+      // Skip edges whose source node falls below the confidence threshold.
+      // Confidence lives on node records (companion data); we approximate it
+      // via the edge's own probability/confidence field when available.
+      if (confidenceMin !== null) {
+        const prob = row['probability'] ?? row['confidence'];
+        const probNum = typeof prob === 'number' ? prob : (typeof prob === 'string' ? Number(prob) : NaN);
+        if (Number.isFinite(probNum) && probNum < confidenceMin) continue;
+      }
+
       const srcId = String(src);
       const tgtId = String(tgt);
 
@@ -148,7 +187,9 @@ export default function DirectedGraph({
         if (Number.isFinite(v)) srcNode.sizeValue += v;
       }
 
-      const label = edgeLabelField ? fmt(row[edgeLabelField]) : '';
+      // Build the edge label: prefer triplet_a→triplet_b combination, fall back
+      // to the mapped edgeLabelField. Truncated to EDGE_LABEL_MAX chars.
+      const label = buildEdgeLabel(row, edgeLabelField);
       let weight = 1;
       if (weightFieldInfo && weightFieldInfo.type === 'number') {
         const v = Number(row[weightFieldInfo.name]);
@@ -179,7 +220,7 @@ export default function DirectedGraph({
     }
 
     return { nodes: Array.from(nodeMap.values()), links };
-  }, [rows, mapping, fieldsByName]);
+  }, [rows, mapping, fieldsByName, confidenceMin]);
 
   // Build color scale once per change in graph
   const colorScale = useMemo(() => {
@@ -388,29 +429,44 @@ export default function DirectedGraph({
       .on('mouseover', (event, l) => {
         const srcId = typeof l.source === 'string' ? l.source : l.source.id;
         const tgtId = typeof l.target === 'string' ? l.target : l.target.id;
-        const lines: string[] = [`<strong>${escapeHTML(srcId)} → ${escapeHTML(tgtId)}</strong>`];
+        // Prefer human-readable source_label / target_label over raw backend IDs
+        const srcLabel = fmt(l.rawRow['source_label'] ?? srcId);
+        const tgtLabel = fmt(l.rawRow['target_label'] ?? tgtId);
+        const lines: string[] = [`<strong>${escapeHTML(srcLabel)} → ${escapeHTML(tgtLabel)}</strong>`];
+
+        // Show probability/confidence prominently when present
+        const prob = l.rawRow['probability'] ?? l.rawRow['confidence'];
+        if (prob !== null && prob !== undefined && prob !== '') {
+          const pct = typeof prob === 'number' ? `${(prob * 100).toFixed(0)}%` : String(prob);
+          lines.push(`<em style="color:#9ca3af">confidence:</em> <strong>${escapeHTML(pct)}</strong>`);
+        }
+
         if (l.label && mapping.edgeLabelField) {
           lines.push(`<em style="color:#9ca3af">${escapeHTML(mapping.edgeLabelField)}:</em> <strong>${escapeHTML(l.label)}</strong>`);
         }
-        if (mapping.edgeWeightField) lines.push(`<em style="color:#9ca3af">${escapeHTML(mapping.edgeWeightField)}:</em> ${l.weight}`);
+        if (mapping.edgeWeightField && mapping.edgeWeightField !== 'probability' && mapping.edgeWeightField !== 'confidence') {
+          lines.push(`<em style="color:#9ca3af">${escapeHTML(mapping.edgeWeightField)}:</em> ${l.weight}`);
+        }
 
-        /* Another merge of code segment */
-        //const skip = new Set([mapping.sourceField, mapping.targetField, mapping.edgeLabelField].filter(Boolean) as string[]);
         const skip = new Set([
           mapping.sourceField,
           mapping.targetField,
           mapping.edgeLabelField,
-          // Auto-skip "noise" fields common in edge-list JSON:
-          //   · <source>_label / <target>_label → redundant display copies of the IDs
-          //   · legend_key_id                    → internal index, never user-facing
           `${mapping.sourceField}_label`,
           `${mapping.targetField}_label`,
           'legend_key_id',
+          // Direction field is redundant — source/target already encode it
+          'causal_relationship',
+          // Raw triplet fields — shown via the label already
+          'triplet_a',
+          'triplet_b',
+          // Probability shown above explicitly
+          'probability',
+          'confidence',
         ].filter(Boolean) as string[]);
         const shown = new Set<string>();
 
-        // First pass: pin any justification-like fields with content. These
-        // get more characters and an italic label so they stand out.
+        // First pass: pin any justification-like fields with content.
         for (const f of fields) {
           if (skip.has(f.name) || !isJustificationField(f.name)) continue;
           const v = l.rawRow[f.name];
@@ -578,16 +634,18 @@ export default function DirectedGraph({
     // Node circles: dim everything outside the focus subnetwork (chain mode
     // OR selected+neighbours in plain selection). When nothing is selected,
     // interactiveNodes is null so all nodes stay at full opacity.
+    // Timeline opacity multiplies BOTH branches so nodes fade regardless of
+    // whether a focus filter is active.
     svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
       .attr('stroke', d => d.id === selectedNode ? '#06b6d4' : '#fff')
       .attr('stroke-width', d => d.id === selectedNode ? 3 : 1)
-      .attr('opacity', d => isNodeInteractive(d.id) ? 1 : 0.12 * timeOpacity(d.id)); // Multiplied by time for timeline
-    
-    // Node labels: hide entirely on out-of-focus nodes (display:none rather
-    // than just fading), so the focused subnetwork's labels read cleanly
-    // without leftover ghost text from the background.
+      .attr('opacity', d => (isNodeInteractive(d.id) ? 1 : 0.12) * timeOpacity(d.id));
+
+    // Node labels: hide entirely on out-of-focus nodes OR fully-faded nodes;
+    // otherwise fade them in step with the node's timeline opacity.
     svg.selectAll<SVGTextElement, Node>('g.nodes g text')
-      .style('display', d => isNodeInteractive(d.id) ? null : 'none');
+      .style('display', d => (!isNodeInteractive(d.id) || timeOpacity(d.id) < GONE) ? 'none' : null)
+      .attr('opacity', d => timeOpacity(d.id));
 
     // Disable pointer events on nodes outside the interactive subnetwork
     // (chain highlight set OR selected node + direct neighbours). This stops
