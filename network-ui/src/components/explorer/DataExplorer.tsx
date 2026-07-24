@@ -7,7 +7,7 @@ import type { DatasetOption } from '../../lib/parseData';
 import { suggestMapping, type FilterMap, type VisualMapping } from '../../lib/mapping';
 import { enumerateChains, reachableWithin, chainToEdgeKeys } from '../../lib/chains';
 import { buildLabel, BUILD_SHA_FULL, BUILD_TIME } from '../../lib/buildInfo';
-import { computeTimeRange, buildOpacityMap, formatCursor, FADE_WINDOW_DAYS } from '../../lib/timeline';
+import { computeTimeRange, buildOpacityMap, buildRowDateLookup, formatCursor, fadeDurationToMs, DEFAULT_FADE_DURATION, MS_PER_MINUTE, type FadeDuration } from '../../lib/timeline';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -127,6 +127,10 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   const [timeCursor, setTimeCursor] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const playRef = useRef<number | null>(null);
+  // Persistence window: how long a node stays before it disappears. Adjustable
+  // in years/months/days/hours/minutes; default 30 days (= previous behaviour).
+  const [fadeDuration, setFadeDuration] = useState<FadeDuration>(DEFAULT_FADE_DURATION);
+  const fadeWindowMs = useMemo(() => fadeDurationToMs(fadeDuration), [fadeDuration]);
   // Edge label visibility: 'auto' (show below density cap), 'on', or 'off'.
   const [edgeLabelMode, setEdgeLabelMode] = useState<'auto' | 'on' | 'off'>('auto');
 
@@ -137,17 +141,30 @@ export default function DataExplorer({ onSwitchMode }: Props) {
 
   const dataset = useMemo(() => selectedOption?.dataset ?? null, [selectedOption]);
 
-  // Companion node lookup (id → unflattened node record) from the auto-join.
-  const nodeData = useMemo(
-    () => selectedOption?.companionNodes?.byId ?? null,
-    [selectedOption],
-  );
+  // Timeline date source, keyed by graph node id:
+  //   1. Edge array: the auto-joined companion node lookup carries the dates
+  //      (edges themselves are undated), keyed by node id = source/target.
+  //   2. Any other array (e.g. the raw node/triple array drawn subject→object):
+  //      dates live on each row, so key by the current source/target values and
+  //      take each entity's earliest-dated row.
+  const nodeData = useMemo<Map<string, Record<string, unknown>> | null>(() => {
+    const companion = selectedOption?.companionNodes?.byId;
+    if (companion && companion.size > 0) return companion;
+    if (dataset && mapping) {
+      const idFields = [mapping.sourceField, mapping.targetField].filter(Boolean);
+      if (idFields.length > 0) {
+        const lookup = buildRowDateLookup(dataset.rows, idFields);
+        if (lookup.size > 0) return lookup;
+      }
+    }
+    return null;
+  }, [selectedOption, dataset, mapping]);
 
   // Timeline span derived from node event dates. hasDates=false → no slider.
   const timeRange = useMemo(() => {
     if (!nodeData) return { min: 0, max: 0, hasDates: false };
-    return computeTimeRange(nodeData);
-  }, [nodeData]);
+    return computeTimeRange(nodeData, fadeWindowMs);
+  }, [nodeData, fadeWindowMs]);
 
   const handleLoaded = (opts: DatasetOption[], fileName: string) => {
     setOptions(opts);
@@ -252,8 +269,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   // off or there are no dates — DirectedGraph treats null as "all visible".
   const nodeOpacity = useMemo<Map<string, number> | null>(() => {
     if (timeCursor === null || !nodeData || !timeRange.hasDates) return null;
-    return buildOpacityMap(nodeData, timeCursor);
-  }, [timeCursor, nodeData, timeRange.hasDates]);
+    return buildOpacityMap(nodeData, timeCursor, fadeWindowMs);
+  }, [timeCursor, nodeData, timeRange.hasDates, fadeWindowMs]);
 
   // Playback: advance the cursor ~1.5% of the span per frame (~throttled to a
   // step) until it reaches the end, then stop. Step granularity is one day so
@@ -261,7 +278,9 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   useEffect(() => {
     if (!playing || timeRange.hasDates === false) return;
     const span = timeRange.max - timeRange.min;
-    const step = Math.max(MS_PER_DAY, span / 240); // ~240 frames end-to-end
+    // ~480 frames end-to-end, but never coarser than 1/8 of the persistence
+    // window (so even a short fade is sampled), floored at 1 minute.
+    const step = Math.max(MS_PER_MINUTE, Math.min(span / 480, fadeWindowMs / 8));
     const tick = () => {
       setTimeCursor(prev => {
         const cur = prev === null ? timeRange.min : prev;
@@ -278,7 +297,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     return () => {
       if (playRef.current !== null) window.clearTimeout(playRef.current);
     };
-  }, [playing, timeRange]);
+  }, [playing, timeRange, fadeWindowMs]);
 
   const enableTimeline = useCallback(() => {
     if (!timeRange.hasDates) return;
@@ -288,6 +307,11 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   const disableTimeline = useCallback(() => {
     setTimeCursor(null);
     setPlaying(false);
+  }, []);
+
+  // Update one field of the persistence duration (clamped to a non-negative int).
+  const setFadePart = useCallback((key: keyof FadeDuration, value: number) => {
+    setFadeDuration(prev => ({ ...prev, [key]: Math.max(0, Math.floor(Number(value) || 0)) }));
   }, []);
 
   if (!options || !dataset || !mapping || !selectedOptionId) {
@@ -468,7 +492,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                 ) : (
                   <>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-gray-300">{formatCursor(timeCursor)}</span>
+                      <span className="text-xs font-semibold text-gray-300">{formatCursor(timeCursor, fadeWindowMs)}</span>
                       <button
                         onClick={() => setPlaying(p => !p)}
                         className="text-[10px] px-2 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-white"
@@ -480,17 +504,45 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                       type="range"
                       min={timeRange.min}
                       max={timeRange.max}
-                      step={MS_PER_DAY}
+                      step={Math.max(MS_PER_MINUTE, Math.min(MS_PER_DAY, fadeWindowMs / 20))}
                       value={timeCursor}
                       onChange={(e) => { setPlaying(false); setTimeCursor(Number(e.target.value)); }}
                       className="w-full accent-blue-500"
                     />
                     <div className="flex justify-between text-[9px] text-gray-500 mt-0.5">
-                      <span>{formatCursor(timeRange.min)}</span>
-                      <span>{formatCursor(timeRange.max)}</span>
+                      <span>{formatCursor(timeRange.min, fadeWindowMs)}</span>
+                      <span>{formatCursor(timeRange.max, fadeWindowMs)}</span>
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-1">
-                      nodes appear on their event date, fade over {FADE_WINDOW_DAYS} days, then their edges drop
+
+                    {/* Persistence window: how long a node stays before it disappears */}
+                    <div className="mt-3 pt-2 border-t border-gray-700/60">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                        Disappears after
+                      </div>
+                      <div className="grid grid-cols-5 gap-1">
+                        {([
+                          ['years', 'y'],
+                          ['months', 'mo'],
+                          ['days', 'd'],
+                          ['hours', 'h'],
+                          ['minutes', 'm'],
+                        ] as [keyof FadeDuration, string][]).map(([key, label]) => (
+                          <label key={key} className="flex flex-col items-center">
+                            <input
+                              type="number"
+                              min={0}
+                              value={fadeDuration[key]}
+                              onChange={(e) => setFadePart(key, Number(e.target.value))}
+                              className="w-full text-center text-[11px] px-0.5 py-1 rounded bg-gray-900 border border-gray-700 text-gray-200 focus:border-blue-500 focus:outline-none"
+                            />
+                            <span className="text-[9px] text-gray-500 mt-0.5">{label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-gray-500 mt-2">
+                      nodes appear on their event date, stay for the window above, fade out, then their edges drop
                     </div>
                   </>
                 )}

@@ -581,25 +581,23 @@ export default function DirectedGraph({
     svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
       .attr('stroke', d => d.id === selectedNode ? '#06b6d4' : '#fff')
       .attr('stroke-width', d => d.id === selectedNode ? 3 : 1)
-      .attr('opacity', d => isNodeInteractive(d.id) ? 1 : 0.12 * timeOpacity(d.id)); // Multiplied by time for timeline
+      .attr('opacity', d => (isNodeInteractive(d.id) ? 1 : 0.12) * timeOpacity(d.id)); // node presence follows the timeline in every state
     
     // Node labels: hide entirely on out-of-focus nodes (display:none rather
     // than just fading), so the focused subnetwork's labels read cleanly
     // without leftover ghost text from the background.
     svg.selectAll<SVGTextElement, Node>('g.nodes g text')
-      .style('display', d => isNodeInteractive(d.id) ? null : 'none');
+      .style('display', d => (!isNodeInteractive(d.id) || timeOpacity(d.id) < GONE) ? 'none' : null);
 
-    // Disable pointer events on nodes outside the interactive subnetwork
-    // (chain highlight set OR selected node + direct neighbours). This stops
-    // unrelated tooltips from firing and occluding the area you're focused
-    // on. When nothing is selected, interactiveNodes is null and everything
-    // stays interactive.
+    // Disable pointer events (click + tooltip) on nodes that are either
+    // outside the interactive subnetwork (chain highlight set OR selected node
+    // + direct neighbours) OR fully faded out by the timeline. A node must be
+    // both in-focus AND present to stay interactive, so a ghost circle that has
+    // decayed to zero can't be clicked or hovered. When nothing is selected,
+    // interactiveNodes is null and only the timeline gate applies.
     svg.selectAll<SVGGElement, Node>('g.nodes > g')
-      .style('pointer-events', d => isNodeInteractive(d.id) ? null : 'none');
-
-    // Hide pointer events on fully-faded nodes so you can't click ghosts.
-    svg.selectAll<SVGGElement, Node>('g.nodes g')
-      .style('pointer-events', d => timeOpacity(d.id) < GONE ? 'none' : 'auto');
+      .style('pointer-events', d =>
+        (isNodeInteractive(d.id) && timeOpacity(d.id) >= GONE) ? null : 'none');
 
     svg.selectAll<SVGLineElement, Link>('g.links line')
       .attr('stroke', l => {
@@ -634,7 +632,10 @@ export default function DirectedGraph({
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
         return sId === selectedNode || tId === selectedNode ? 'url(#arrow-selected)' : 'url(#arrow)';
       })
-      .style('pointer-events', l => isLinkInteractive(l) ? null : 'none');
+      // Disable hover/tooltip on edges that are out of focus OR fully faded by
+      // the timeline (either endpoint gone), so a ghost edge can't surface its
+      // edge-label info after the nodes it connects have disappeared.
+      .style('pointer-events', l => (isLinkInteractive(l) && linkTimeOpacity(l) > 0) ? null : 'none');
 
     // Edge labels — visibility follows the focus subnetwork. When a node is
     // selected, only labels for edges touching the focus (the active chain
@@ -642,6 +643,7 @@ export default function DirectedGraph({
     // else is fully hidden. Reverts to default on deselection.
     svg.selectAll<SVGTextElement, Link>('g.edge-labels text')
       .style('display', l => {
+        if (linkTimeOpacity(l) === 0) return 'none'; // faded-out edge → no label at all
         if (!selectedNode) return null;        // no selection → show per user's mode
         if (isLinkInChain(l)) return null;     // chain edges keep their label
         if (isLinkInteractive(l)) return null; // edges in focus subnetwork keep theirs
