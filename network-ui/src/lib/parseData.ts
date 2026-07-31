@@ -100,11 +100,26 @@ export function detectFields(rows: Record<string, unknown>[]): FieldInfo[] {
     }
   }
 
-  const sampleSize = Math.min(rows.length, 500);
+  // How many populated values to inspect when inferring a field's type.
+  const TYPE_SAMPLE_TARGET = 500;
   const fields: FieldInfo[] = [];
 
   for (const name of order) {
-    const sampleValues = rows.slice(0, sampleSize).map(r => r[name]);
+    // Gather up to TYPE_SAMPLE_TARGET NON-NULL values for type inference,
+    // scanning across the whole dataset rather than blindly taking the first
+    // N rows. A column that only applies to a subset of rows (e.g. `probability`
+    // on causal edges but not hierarchy edges) often has a long leading run of
+    // empty cells; sampling the first N rows there would see nothing but blanks
+    // and mis-type the numeric column as a string — which then renders as a
+    // categorical toggle list instead of a range slider. Scanning for populated
+    // values keeps the widget consistent regardless of where the data sits.
+    const sampleValues: unknown[] = [];
+    for (const row of rows) {
+      const v = row[name];
+      if (v === null || v === undefined || v === '') continue;
+      sampleValues.push(v);
+      if (sampleValues.length >= TYPE_SAMPLE_TARGET) break;
+    }
     const type = inferType(sampleValues);
 
     const unique = new Set<string>();
