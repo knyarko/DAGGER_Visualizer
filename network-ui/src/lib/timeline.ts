@@ -9,11 +9,25 @@
 // (epoch ms) and we derive each node's opacity from (cursor − eventDate).
 //
 // Event date precedence:
-//   1. explicit year/month/day fields (month is 1-based as in the source data)
+//   1. explicit year/month/day fields (month is 1-based as in the source data),
+//      now WITH hour/minute/second/timezone when the record carries them
 //   2. a parseable date string in a timestamp-like field
 // We deliberately prefer year/month/day because in the DAGGER data the
 // `timestamp` field records WHEN A NODE WAS ACCESSED, not when the underlying
 // event occurred — the event date lives in day/month/year.
+//
+// B007 (VT004): step 1 previously read ONLY day/month/year and threw the clock
+// away, so every node in a day landed on the same instant and the timeline
+// could not separate them. It now reads all seven clock fields —
+// day/month/year/hour/minute/second/timezone — into ONE sortable instant.
+// What did NOT change, on purpose:
+//   · `timestamp` is still not promoted over day/month/year. The comment above
+//     is the reason and it still holds; the fix was the missing clock, not the
+//     precedence.
+//   · a record with no hour/minute/second still resolves to local midnight,
+//     exactly as before, so every dataset without a clock is untouched.
+//   · a record with no `timezone` is still built in LOCAL time, as before. Only
+//     a record that states its zone is built in that zone.
 
 export const MS_PER_MINUTE = 60 * 1000;
 export const MS_PER_HOUR = 60 * MS_PER_MINUTE;
@@ -73,19 +87,111 @@ export function fadeDurationToMs(d: FadeDuration): number {
 }
 
 /**
- * Resolve a node record's event date to epoch ms, or null if undeterminable.
- * `record` is the UNFLATTENED node object from companionNodes.
+ * The seven clock fields of a record, read and coerced. The pipeline emits them
+ * as zero-padded STRINGS ("08", "2017"), so everything here goes through toInt.
+ */
+export interface ClockParts {
+  year: number;
+  /** 1-based, as in the source data. */
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+  /** Minutes east of UTC, or null when the record states no zone (or states one
+   *  this code cannot resolve) — null means "build in local time". */
+  offsetMinutes: number | null;
+  /** True when at least one of hour/minute/second was actually present. Lets a
+   *  caller tell "midnight because the data says midnight" from "midnight
+   *  because the data has no clock". */
+  hasTimeOfDay: boolean;
+}
+
+/**
+ * Resolve a `timezone` field to minutes east of UTC.
+ *
+ * Handles UTC / GMT / Z and numeric offsets (`+05:30`, `-0700`, `UTC+2`).
+ * A named zone the browser would need a tz database for (`EST`,
+ * `America/New_York`) returns null rather than a guess — a wrong offset is
+ * worse than falling back to local time, and it would be invisible once the
+ * instant is a number.
+ */
+export function timezoneOffsetMinutes(tz: unknown): number | null {
+  if (typeof tz !== 'string') return null;
+  const s = tz.trim();
+  if (!s) return null;
+  if (/^(utc|gmt|z|utc\+?0{1,2}(:?00)?|gmt\+?0{1,2}(:?00)?)$/i.test(s)) return 0;
+  const m = /^(?:utc|gmt)?\s*([+-])(\d{1,2})(?::?(\d{2}))?$/i.exec(s);
+  if (!m) return null;
+  const sign = m[1] === '-' ? -1 : 1;
+  const hours = Number(m[2]);
+  const mins = m[3] ? Number(m[3]) : 0;
+  if (!Number.isFinite(hours) || hours > 14 || mins > 59) return null;
+  return sign * (hours * 60 + mins);
+}
+
+/**
+ * Read the clock fields off a record, or null when there is no usable `year`.
+ * Out-of-range parts fall back to the same defaults the original day/month/year
+ * code used (month → January, day → 1) so an odd record degrades the same way
+ * it always did instead of dropping out of the timeline.
+ */
+export function nodeClock(record: Record<string, unknown>): ClockParts | null {
+  const y = toInt(record.year);
+  if (y === null) return null;
+
+  const m = toInt(record.month);
+  const d = toInt(record.day);
+  const hh = toInt(record.hour);
+  const mm = toInt(record.minute);
+  const ss = toInt(record.second);
+
+  const inRange = (v: number | null, lo: number, hi: number): number | null =>
+    v !== null && v >= lo && v <= hi ? v : null;
+
+  const hour = inRange(hh, 0, 23);
+  const minute = inRange(mm, 0, 59);
+  // 60 accepted: a leap second rolls into the next minute rather than being
+  // discarded, which is what Date.UTC does with it anyway.
+  const second = inRange(ss, 0, 60);
+
+  return {
+    year: y,
+    month: inRange(m, 1, 12) ?? 1,
+    day: inRange(d, 1, 31) ?? 1,
+    hour: hour ?? 0,
+    minute: minute ?? 0,
+    second: second ?? 0,
+    offsetMinutes: timezoneOffsetMinutes(record.timezone),
+    hasTimeOfDay: hour !== null || minute !== null || second !== null,
+  };
+}
+
+/** Turn read clock parts into one epoch-ms instant, or null if not finite. */
+export function clockToInstant(c: ClockParts): number | null {
+  const t = c.offsetMinutes === null
+    // No stated zone → local time, exactly as this function behaved before.
+    ? new Date(c.year, c.month - 1, c.day, c.hour, c.minute, c.second).getTime()
+    // Stated zone → the wall clock is in THAT zone, so convert to UTC by
+    // subtracting the offset.
+    : Date.UTC(c.year, c.month - 1, c.day, c.hour, c.minute, c.second) - c.offsetMinutes * 60_000;
+  return Number.isFinite(t) ? t : null;
+}
+
+/**
+ * Resolve a node record to ONE sortable instant in epoch ms, or null if
+ * undeterminable. `record` is the UNFLATTENED node object from companionNodes
+ * (or a DaggerIndex node — same object).
+ *
+ * This is the single instant the whole timeline sorts, ranges and fades on.
+ * There is no second date anywhere.
  */
 export function nodeEventDate(record: Record<string, unknown>): number | null {
-  // 1. Structured year/month/day (month is 1-based in source data)
-  const y = toInt(record.year);
-  if (y !== null) {
-    const m = toInt(record.month);
-    const d = toInt(record.day);
-    const month = m !== null && m >= 1 && m <= 12 ? m - 1 : 0;
-    const day = d !== null && d >= 1 && d <= 31 ? d : 1;
-    const t = new Date(y, month, day).getTime();
-    if (Number.isFinite(t)) return t;
+  // 1. The structured clock fields — all seven when present.
+  const clock = nodeClock(record);
+  if (clock) {
+    const t = clockToInstant(clock);
+    if (t !== null) return t;
   }
 
   // 2. A parseable timestamp-ish string. Strip a trailing timezone token like
@@ -219,17 +325,29 @@ export function buildRowDateLookup(
   return out;
 }
 
-// A short human label for a cursor time, e.g. "Sep 20, 2017". When the
-// persistence window is under a day, the time of day is appended so short
-// fades read meaningfully on the slider.
-export function formatCursor(ms: number, fadeWindowMs?: number): string {
+/**
+ * A human label for a cursor time, e.g. "Sep 20, 2017, 15:03:47".
+ *
+ * VT004: the time of day is ALWAYS shown, to the second. It used to appear only
+ * when the persistence window was under a day, which meant that on a file whose
+ * records carry a real clock — every DAGGER Graph_Viz — the slider read
+ * "Oct 10, 2017" and the clock the timeline had just parsed was invisible.
+ * The old `fadeWindowMs` parameter existed only to gate that and is gone; the
+ * three call sites in DataExplorer were updated with it.
+ *
+ * Hour is forced to 24h (`hourCycle: 'h23'`) so the readout is monotonic with
+ * the slider in every locale — a 12h clock makes 00:xx sort visually after 11:xx.
+ */
+export function formatCursor(ms: number): string {
   const d = new Date(ms);
   if (Number.isNaN(d.getTime())) return '—';
-  const showTime = fadeWindowMs !== undefined && fadeWindowMs < MS_PER_DAY;
-  return d.toLocaleDateString(undefined, {
+  return d.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-    ...(showTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
   });
 }
