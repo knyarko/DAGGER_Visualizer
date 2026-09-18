@@ -1,8 +1,46 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as d3 from 'd3';
 import type { FieldInfo } from '../../lib/parseData';
 import type { VisualMapping } from '../../lib/mapping';
 import { DEGREE_IN, DEGREE_OUT, DEGREE_TOTAL, isDegreeSentinel } from '../../lib/mapping';
+
+/**
+ * Which tier of the DAGGER hierarchy a node belongs to. Supplied per node id by
+ * `DataExplorer` from the loader's index (`isTripletNode` / `isClusterNode` /
+ * `isCategoryNode`) — this component never re-derives it from a field name.
+ */
+export type DaggerNodeKind = 'triplet' | 'cluster' | 'category';
+
+/**
+ * AA052 — the image thumbnail one node shows in its hover tooltip.
+ *
+ * Rusty: "I do want an image hover. And of course it will have the blur for it
+ * as well."
+ *
+ * IMAGE ONLY. The tooltip is an HTML surface with `pointer-events: none` that
+ * is cleared on `mouseout`, so an `<audio controls>` or a `<video controls>`
+ * in it could never be operated and a reveal button in it could never be
+ * clicked. Dana established that in sprint 1 and nothing has changed. A node
+ * with no image — a cluster, a category, an audio-only triplet — is simply
+ * absent from the map and gets the tooltip exactly as it was before AA052.
+ *
+ * `DataExplorer` fills this in, because only it holds the DAGGER index, the
+ * reveal threshold, the Hide All / Reveal All override and the panel's per-node
+ * reveal. This component paints what it is handed and decides nothing about
+ * concealment — there is no second copy of that rule here to drift from
+ * `NodeMedia`'s.
+ */
+export interface NodeThumbnail {
+  /** Every address to try, in configured-root order, from the same joiner the
+   *  media card uses (`mediaCandidates` in `lib/mediaConfig.ts`). The first that
+   *  loads wins; when all of them fail there is no thumbnail. */
+  urls: string[];
+  /** Conceal it — by `NodeMedia`'s own `isRecordConcealed`, never by a rule
+   *  restated here. True means the viewer has not chosen to look at this
+   *  record, so the thumbnail is blurred and covered exactly as the panel's
+   *  media element is. See `lib/contentBlur.ts`. */
+  concealed: boolean;
+}
 
 interface Props {
   rows: Record<string, unknown>[];
@@ -17,6 +55,51 @@ interface Props {
   /** When non-null, per-node timeline opacity (0..1) keyed by node id. Nodes
    *  absent from the map (or the whole map being null) are treated as opacity 1. */
   nodeOpacity?: Map<string, number> | null;
+  /**
+   * node id → display text. When a node id is present here its label is drawn
+   * and shown in the tooltip instead of the raw id; ids absent from the map (or
+   * a null map) keep rendering the id exactly as before.
+   *
+   * This is how a DAGGER triplet reads `subject → predicate → object` instead
+   * of `01m26bdkvb8nme84khpcqzrmqs_0001`. It is supplied only for files the
+   * loader detected as DAGGER-shaped, so every other dataset is unchanged.
+   * The graph is still keyed, joined, filtered and selected BY ID — this is
+   * presentation only, and two nodes sharing a label stay two nodes.
+   */
+  nodeLabels?: Map<string, string> | null;
+  /**
+   * node id → its DAGGER tier, so a triplet, a cluster and a category are three
+   * visibly different things (AA047). Supplied only for a DAGGER-detected file;
+   * a null map (or an id absent from it) keeps the previous single fill colour,
+   * so every other dataset looks exactly as it did.
+   *
+   * An explicit `mapping.nodeColorField` still wins: colouring by a field is
+   * something the viewer asked for on purpose, and the tier colours are the
+   * DEFAULT they replace, not an override of a choice.
+   */
+  nodeKinds?: Map<string, DaggerNodeKind> | null;
+  /**
+   * The node ids to light up in the selection colour: the node actually clicked
+   * plus every OTHER VISIBLE node that is the same thing — the same `triplet_id`
+   * on a triplet, the same `cluster_id` on a cluster. A cluster placed under
+   * three categories is three node ids, and all three light at once.
+   *
+   * `DataExplorer` decides membership, because only it knows what a filter has
+   * pruned. This component just paints what it is handed; ids that are not drawn
+   * simply are not here to paint.
+   */
+  litNodes?: Set<string> | null;
+  /**
+   * node id → the image thumbnail its hover tooltip shows (AA052), or null for
+   * a file that has none — every non-DAGGER dataset, whose tooltips are then
+   * byte-for-byte what they were.
+   *
+   * Read through a ref at hover time rather than from the effect that builds
+   * the graph: the concealment in here changes every time the reveal slider
+   * moves, and rebuilding the whole simulation on a slider drag would be a
+   * much worse bug than the one this prop fixes.
+   */
+  nodeThumbnails?: Map<string, NodeThumbnail> | null;
   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
   spread?: number;
   /**
@@ -50,6 +133,139 @@ interface Link extends d3.SimulationLinkDatum<Node> {
 }
 
 const PALETTE = d3.schemeTableau10;
+
+// ── AA047: the node palette ──────────────────────────────────────────────────
+//
+// Rusty: "I would also like a color scheme to distinguish between triplets,
+// clusters, and categories. […] We already have a blue highlight line when a
+// section is clicked. Have the actual selected node turn bright green or yellow
+// within that blue highlight."
+//
+// So there are two independent jobs and one constraint. The KIND colours say
+// what a node is; the SELECTION colour says what you clicked and where else
+// that same thing appears. Neither may be confusable with the other, and
+// neither may be confusable with the cyan-blue this graph already uses for a
+// selected node's ring, its edges and its arrowheads.
+//
+// The hues are therefore kept far apart: rose and purple for the two
+// data-bearing tiers, a neutral slate for the category scaffolding above them
+// (structure, not content — it should recede), and lime for selection, which is
+// the "bright green or yellow" he asked for and sits nowhere near cyan. All
+// four are read against the graph's near-black `bg-gray-950` surface, and all
+// four keep their contrast against the white node ring.
+//
+// One place, four names. Nothing below writes a colour literal.
+const DAGGER_KIND_FILL: Record<DaggerNodeKind, string> = {
+  triplet: '#fb7185',   // rose-400
+  cluster: '#c084fc',   // purple-400
+  category: '#94a3b8',  // slate-400
+};
+/** The fill every node had before AA047, and still has when no kind is known. */
+const NODE_FILL_DEFAULT = '#60a5fa';
+/** The clicked node AND every other visible occurrence of the same thing. */
+const SELECTION_FILL = '#a3e635';   // lime-400
+/** The existing blue highlight on a clicked section — unchanged, just named. */
+const SELECTION_RING = '#06b6d4';
+/** The ring every other node wears. */
+const NODE_RING = '#fff';
+
+// ── AA052: the hover thumbnail ───────────────────────────────────────────────
+//
+// Small enough to sit inside the tooltip's 420px cap without covering the graph
+// it is describing, and large enough to be worth having.
+const THUMB_WIDTH = 180;
+const THUMB_MAX_HEIGHT = 140;
+// The panel conceals with Tailwind's `blur-lg` (16px) over a `bg-gray-950/55`
+// scrim. These are those two values, so a concealed thumbnail is concealed to
+// exactly the degree a concealed media card is — parity, not an approximation.
+const THUMB_BLUR_PX = 16;
+const THUMB_SCRIM = 'rgba(2, 6, 23, 0.55)';
+// A CSS blur fades to transparent at the element's edge, which would leave a
+// legible rim of the original image. Scaling the image up inside a clipped
+// frame pushes that rim outside the visible box.
+const THUMB_BLUR_SCALE = 1.25;
+
+/**
+ * Append one node's image thumbnail to the tooltip, or nothing at all.
+ *
+ * Built as DOM rather than appended to the tooltip's HTML string, for two
+ * reasons that are both about correctness:
+ *
+ *  1. The `<img>` needs a REAL `onerror` handler to walk the configured roots
+ *     in order, the same ordered fallback the media card does. Inline `onerror`
+ *     markup inside a `.html()` string is script in a string, next to values
+ *     that come out of a data file.
+ *  2. A concealed thumbnail must be blurred from its FIRST paint. The blur is
+ *     therefore set on the element before `src` is, and an `<img>` with no
+ *     `src` paints nothing — so there is no frame in which a concealed image
+ *     is on screen unblurred. This is the requirement AA052 is really about,
+ *     and it is why the ordering below is not cosmetic.
+ *
+ * There is no reveal control here, deliberately. Concealed stays concealed in
+ * the tooltip; the panel is where a viewer chooses to look.
+ */
+function appendNodeThumbnail(host: HTMLElement | null, thumb: NodeThumbnail | undefined): void {
+  if (!host || !thumb || thumb.urls.length === 0) return;
+
+  const frame = document.createElement('div');
+  frame.style.position = 'relative';
+  frame.style.marginTop = '6px';
+  frame.style.width = `${THUMB_WIDTH}px`;
+  frame.style.overflow = 'hidden';
+  frame.style.borderRadius = '3px';
+  frame.style.background = '#000';
+
+  const img = document.createElement('img');
+  img.alt = '';
+  img.style.display = 'block';
+  img.style.width = '100%';
+  img.style.maxHeight = `${THUMB_MAX_HEIGHT}px`;
+  img.style.objectFit = 'contain';
+
+  if (thumb.concealed) {
+    img.style.filter = `blur(${THUMB_BLUR_PX}px)`;
+    img.style.transform = `scale(${THUMB_BLUR_SCALE})`;
+  }
+  frame.appendChild(img);
+
+  if (thumb.concealed) {
+    // The scrim says WHY it is unreadable, so a blurred thumbnail does not read
+    // as a broken one — and names the panel as the way out without offering a
+    // control that could not be clicked through `pointer-events: none` anyway.
+    const scrim = document.createElement('div');
+    scrim.style.position = 'absolute';
+    scrim.style.left = '0';
+    scrim.style.top = '0';
+    scrim.style.right = '0';
+    scrim.style.bottom = '0';
+    scrim.style.display = 'flex';
+    scrim.style.alignItems = 'center';
+    scrim.style.justifyContent = 'center';
+    scrim.style.padding = '4px';
+    scrim.style.textAlign = 'center';
+    scrim.style.lineHeight = '1.3';
+    scrim.style.fontSize = '10px';
+    scrim.style.color = '#fcd34d';
+    scrim.style.background = THUMB_SCRIM;
+    scrim.textContent = 'concealed — reveal it in the panel';
+    frame.appendChild(scrim);
+  }
+
+  // The ordered fallback, exactly as `MediaItem` does it: the element is the
+  // probe, a failed load advances the cursor by one, the cursor only ever moves
+  // forward. When every configured root has failed there is no thumbnail to
+  // show, so the block removes itself and the tooltip is the one it always was.
+  let attempt = 0;
+  img.onerror = () => {
+    attempt += 1;
+    if (attempt < thumb.urls.length) img.src = thumb.urls[attempt];
+    else frame.remove();
+  };
+  // LAST. See (2) above.
+  img.src = thumb.urls[0];
+
+  host.appendChild(frame);
+}
 
 function fmt(v: unknown): string {
   if (v === null || v === undefined) return '—';
@@ -93,6 +309,10 @@ export default function DirectedGraph({
   highlightedNodes = null,
   highlightedEdgeKeys = null,
   nodeOpacity = null,
+  nodeLabels = null,
+  nodeKinds = null,
+  litNodes = null,
+  nodeThumbnails = null,
   spread = 1.0,
   edgeLabelMode = 'auto',
 }: Props) {
@@ -102,6 +322,19 @@ export default function DirectedGraph({
   const simRef = useRef<d3.Simulation<Node, Link> | null>(null);
   const spreadRef = useRef(spread);
   spreadRef.current = spread;
+  // AA052. Same trick as `spreadRef` above, for the same reason: the tooltip
+  // handlers are installed once by the effect that builds the graph, and the
+  // thumbnails change on every move of the reveal slider and every press of
+  // Hide All / Reveal All. Reading them through a ref keeps that a re-render
+  // and not a rebuild of the simulation — and keeps the CURRENT concealment in
+  // force at the moment of the hover, which is the whole safety requirement.
+  const thumbnailsRef = useRef(nodeThumbnails);
+  // Written in an effect, not during render: React forbids the second, and an
+  // effect is early enough regardless — it runs on commit, before any hover
+  // the new value has to answer for.
+  useEffect(() => {
+    thumbnailsRef.current = nodeThumbnails;
+  }, [nodeThumbnails]);
 
   const fieldsByName = useMemo(() => new Map(fields.map(f => [f.name, f])), [fields]);
 
@@ -188,6 +421,18 @@ export default function DirectedGraph({
     return d3.scaleOrdinal<string, string>().domain(keys).range(PALETTE);
   }, [graph.nodes, mapping.nodeColorField]);
 
+  // A node's colour when it is NOT lit by the selection (AA047). Precedence:
+  //   1. an explicit `nodeColorField` mapping — the viewer asked for that
+  //   2. the node's DAGGER tier, when the loader detected one
+  //   3. the flat default every dataset had before this sprint
+  // Shared by the build effect and the selection effect so a node repaints to
+  // exactly the colour it started with when it stops being lit.
+  const nodeFill = useCallback((id: string, colorKey: string | null): string => {
+    if (colorScale && colorKey != null) return colorScale(colorKey);
+    const kind = nodeKinds?.get(id);
+    return kind ? DAGGER_KIND_FILL[kind] : NODE_FILL_DEFAULT;
+  }, [colorScale, nodeKinds]);
+
   const sizeScale = useMemo(() => {
     const max = d3.max(graph.nodes, n => n.sizeValue) ?? 1;
     return d3.scaleSqrt().domain([0, Math.max(max, 1)]).range([6, 30]);
@@ -241,7 +486,7 @@ export default function DirectedGraph({
       .attr('orient', 'auto')
       .append('path')
       .attr('d', `M0,-${ARROW_HALF + 0.5}L${ARROW_LEN + 1},0L0,${ARROW_HALF + 0.5}z`)
-      .attr('fill', '#06b6d4');
+      .attr('fill', SELECTION_RING);
 
     const g = svg.append('g');
 
@@ -334,12 +579,17 @@ export default function DirectedGraph({
 
     nodeSel.append('circle')
       .attr('r', n => sizeScale(n.sizeValue))
-      .attr('fill', n => colorScale && n.colorKey != null ? colorScale(n.colorKey) : '#60a5fa')
-      .attr('stroke', '#fff')
+      .attr('fill', n => nodeFill(n.id, n.colorKey))
+      .attr('stroke', NODE_RING)
       .attr('stroke-width', 1);
 
+    // Display text for a node id: its label when the loader supplied one,
+    // otherwise the id itself — the pre-existing behaviour for every dataset
+    // that has no label map.
+    const displayLabel = (id: string): string => nodeLabels?.get(id) ?? id;
+
     nodeSel.append('text')
-      .text(n => n.id)
+      .text(n => displayLabel(n.id))
       .attr('text-anchor', 'middle')
       .attr('dy', n => sizeScale(n.sizeValue) + 11)
       .attr('font-size', 10)
@@ -369,7 +619,9 @@ export default function DirectedGraph({
 
     nodeSel
       .on('mouseover', (event, d) => {
-        const lines: string[] = [`<strong>${d.id}</strong>`];
+        // Tooltips render with .html(), so the label is escaped like every
+        // other value — it comes from the data file, not from us.
+        const lines: string[] = [`<strong>${escapeHTML(displayLabel(d.id))}</strong>`];
         if (mapping.nodeColorField && d.colorKey != null) {
           lines.push(`${mapping.nodeColorField}: ${d.colorKey}`);
         }
@@ -377,7 +629,14 @@ export default function DirectedGraph({
         if (mapping.nodeSizeField && fieldsByName.get(mapping.nodeSizeField)?.type === 'number') {
           lines.push(`${mapping.nodeSizeField}: ${d.sizeValue}`);
         }
-        tooltip.html(lines.join('<br/>')).style('visibility', 'visible');
+        // AA052 — the text first, then the image under it. `.html()` replaces
+        // the tooltip's whole contents, so the previous node's thumbnail is
+        // gone before this one's is built: a thumbnail cannot outlive the node
+        // it belongs to, and a concealed node's cover cannot be left behind
+        // over the next node's image.
+        tooltip.html(lines.join('<br/>'));
+        appendNodeThumbnail(tooltip.node(), thumbnailsRef.current?.get(d.id));
+        tooltip.style('visibility', 'visible');
       })
       .on('mousemove', (event) => {
         tooltip.style('top', (event.pageY - 10) + 'px').style('left', (event.pageX + 12) + 'px');
@@ -492,7 +751,7 @@ export default function DirectedGraph({
       simRef.current = null;
       tooltip.remove();
     };
-  }, [graph, colorScale, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode]); // Kept edgeLabelMode
+  }, [graph, colorScale, nodeFill, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels]); // Kept edgeLabelMode
   // selectedNode handled by a separate effect below to avoid restarting the simulation on selection
 
   // Spread control — retune the existing simulation's link/charge forces
@@ -513,6 +772,15 @@ export default function DirectedGraph({
   //      edges in highlightedEdgeKeys) → dim outside, brighten inside
   //   2. node selected but no chain → highlight direct neighbours (legacy)
   //   3. nothing selected → default neutral palette
+  //
+  // AA047 rides on top of all three: whatever the case, a node in `litNodes`
+  // wears the selection fill and is never dimmed, because the whole point is to
+  // see the clicked thing's other occurrences in branches you did not click.
+  //
+  // `graph` is in the dependency list so this runs again after the build effect
+  // rebuilds the SVG. Without it a filter change while a node is selected drew
+  // fresh circles with no selection styling at all — the clicked node lost its
+  // ring and its lit occurrences went out (B032).
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
@@ -526,6 +794,11 @@ export default function DirectedGraph({
     // A node is considered "gone" (fully faded) below this threshold; its
     // edges are then hidden entirely.
     const GONE = 0.02;
+
+    // AA047: is this node the clicked one, or another visible occurrence of the
+    // same triplet_id / cluster_id? `DataExplorer` has already excluded anything
+    // a filter pruned — "this does not reflect on if the nodes are not visible."
+    const isLit = (id: string): boolean => !!litNodes && litNodes.has(id);
 
     const isLinkInChain = (l: Link): boolean => {
       if (!highlightedEdgeKeys) return false;
@@ -578,16 +851,25 @@ export default function DirectedGraph({
     // Node circles: dim everything outside the focus subnetwork (chain mode
     // OR selected+neighbours in plain selection). When nothing is selected,
     // interactiveNodes is null so all nodes stay at full opacity.
+    //
+    // AA047 adds the fill: a lit node turns lime, everything else repaints to
+    // the colour it would have had anyway (mapped field → tier → default). The
+    // clicked node keeps the cyan ring it always had, so it reads as "green
+    // INSIDE the blue highlight"; its other occurrences get the same fill and a
+    // slightly heavier white ring, which says "same thing, not the one you
+    // clicked". A lit node is also never dimmed, or the feature would be
+    // invisible in exactly the branches it exists to show.
     svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
-      .attr('stroke', d => d.id === selectedNode ? '#06b6d4' : '#fff')
-      .attr('stroke-width', d => d.id === selectedNode ? 3 : 1)
-      .attr('opacity', d => (isNodeInteractive(d.id) ? 1 : 0.12) * timeOpacity(d.id)); // node presence follows the timeline in every state
-    
+      .attr('fill', d => isLit(d.id) ? SELECTION_FILL : nodeFill(d.id, d.colorKey))
+      .attr('stroke', d => d.id === selectedNode ? SELECTION_RING : NODE_RING)
+      .attr('stroke-width', d => d.id === selectedNode ? 3 : isLit(d.id) ? 2 : 1)
+      .attr('opacity', d => ((isNodeInteractive(d.id) || isLit(d.id)) ? 1 : 0.12) * timeOpacity(d.id)); // node presence follows the timeline in every state
+
     // Node labels: hide entirely on out-of-focus nodes (display:none rather
     // than just fading), so the focused subnetwork's labels read cleanly
     // without leftover ghost text from the background.
     svg.selectAll<SVGTextElement, Node>('g.nodes g text')
-      .style('display', d => (!isNodeInteractive(d.id) || timeOpacity(d.id) < GONE) ? 'none' : null);
+      .style('display', d => ((!isNodeInteractive(d.id) && !isLit(d.id)) || timeOpacity(d.id) < GONE) ? 'none' : null);
 
     // Disable pointer events (click + tooltip) on nodes that are either
     // outside the interactive subnetwork (chain highlight set OR selected node
@@ -595,19 +877,21 @@ export default function DirectedGraph({
     // both in-focus AND present to stay interactive, so a ghost circle that has
     // decayed to zero can't be clicked or hovered. When nothing is selected,
     // interactiveNodes is null and only the timeline gate applies.
+    // A lit node stays clickable as well as visible: seeing the same cluster in
+    // another branch and not being able to click it there would be a tease.
     svg.selectAll<SVGGElement, Node>('g.nodes > g')
       .style('pointer-events', d =>
-        (isNodeInteractive(d.id) && timeOpacity(d.id) >= GONE) ? null : 'none');
+        ((isNodeInteractive(d.id) || isLit(d.id)) && timeOpacity(d.id) >= GONE) ? null : 'none');
 
     svg.selectAll<SVGLineElement, Link>('g.links line')
       .attr('stroke', l => {
         // Chain edge wins
-        if (isLinkInChain(l)) return '#06b6d4';
+        if (isLinkInChain(l)) return SELECTION_RING;
         if (highlightedNodes) return linkInHighlight(l) ? '#9ca3af' : '#374151';
         if (!selectedNode) return '#9ca3af';
         const sId = typeof l.source === 'string' ? l.source : l.source.id;
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
-        return sId === selectedNode || tId === selectedNode ? '#06b6d4' : '#374151';
+        return sId === selectedNode || tId === selectedNode ? SELECTION_RING : '#374151';
       })
       .attr('stroke-opacity', l => {
         const t = linkTimeOpacity(l);
@@ -659,7 +943,7 @@ export default function DirectedGraph({
         if (highlightedNodes) return (linkInHighlight(l) ? 0.9 : 0.05) * t;
         return 0.9 * t;
       });
-  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity]);
+  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity, litNodes, nodeFill, graph]);
 
   // Legend for color scale
   const legendItems = useMemo(() => {

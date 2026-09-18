@@ -12,9 +12,19 @@ interface SampleDataset {
 // BASE_URL is '/' in dev and '/<repo>/' under GitHub Pages, so samples resolve in both
 const BASE = import.meta.env.BASE_URL;
 
+// ── THE SAMPLE BUTTONS ──────────────────────────────────────────────────────
+//   The first two entries point at files that are NOT in this checkout, so both
+//   404 on click (B024). They are left exactly as they are ON PURPOSE: the files
+//   are missing, not the buttons, and deleting a button would hide the problem
+//   instead of fixing it. Whether they stay is Rusty's call, not this file's.
+//
+//   The third (AA042) points at `public/samples/Test_Graph_Viz.json`, which IS
+//   in this checkout. Its blurb is two short sentences, deliberately: it has to
+//   say "this is a test" and stop, and it is the one thing a viewer needs to
+//   know before reading a handling score off it.
 const SAMPLES: SampleDataset[] = [
   {
-    label: 'Crisis MD Causal Triplets (JSON)',
+    label: 'Crisis MMD Causal Triplets (JSON)',
     url: `${BASE}samples/Causal_Relationship_Graph_Viz.json`,
     description: 'Sample of Crisis MMD causal relationships by triplets ( Subject → Predicate → Object ). · The CrisisMMD multimodal Twitter dataset consists of several thousands of manually annotated tweets and images collected during seven major natural disasters including earthquakes, hurricanes, wildfires, and floods that happened in the year 2017 across different parts of the World.',
   },
@@ -22,6 +32,11 @@ const SAMPLES: SampleDataset[] = [
     label: `Synthetic Data for Timeline View (JSON)`,
     url: `${BASE}samples/Timeline_Demo_Viz.json`,
     description: 'This dataset is a synthetic dataset that is used to demonstrate the timeline view of the network explorer.',
+  },
+  {
+    label: 'DAGGER Test Graph (JSON)',
+    url: `${BASE}samples/Test_Graph_Viz.json`,
+    description: 'A test fixture for exercising the viewer. Its handling values are simulated, not real scores.',
   },
 ];
 

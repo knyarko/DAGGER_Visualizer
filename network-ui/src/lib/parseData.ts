@@ -1,3 +1,8 @@
+import type {
+  DaggerGraph, DaggerHandling, DaggerIndex, DaggerMedia, DaggerNode,
+  DaggerCategoryNode, DaggerClusterNode, DaggerTripletNode,
+} from '../types';
+
 export type FieldType = 'number' | 'date' | 'boolean' | 'string';
 
 export interface FieldInfo {
@@ -100,11 +105,26 @@ export function detectFields(rows: Record<string, unknown>[]): FieldInfo[] {
     }
   }
 
-  const sampleSize = Math.min(rows.length, 500);
+  // How many populated values to inspect when inferring a field's type.
+  const TYPE_SAMPLE_TARGET = 500;
   const fields: FieldInfo[] = [];
 
   for (const name of order) {
-    const sampleValues = rows.slice(0, sampleSize).map(r => r[name]);
+    // Gather up to TYPE_SAMPLE_TARGET NON-NULL values for type inference,
+    // scanning across the whole dataset rather than blindly taking the first
+    // N rows. A column that only applies to a subset of rows (e.g. `probability`
+    // on causal edges but not hierarchy edges) often has a long leading run of
+    // empty cells; sampling the first N rows there would see nothing but blanks
+    // and mis-type the numeric column as a string — which then renders as a
+    // categorical toggle list instead of a range slider. Scanning for populated
+    // values keeps the widget consistent regardless of where the data sits.
+    const sampleValues: unknown[] = [];
+    for (const row of rows) {
+      const v = row[name];
+      if (v === null || v === undefined || v === '') continue;
+      sampleValues.push(v);
+      if (sampleValues.length >= TYPE_SAMPLE_TARGET) break;
+    }
     const type = inferType(sampleValues);
 
     const unique = new Set<string>();
@@ -270,6 +290,12 @@ export interface DatasetOption {
     idField: string;                              // which field held the node id
     rawNodes: Record<string, unknown>[];          // all node records (unflattened)
   };
+  // Present ONLY when the source file was detected as a DAGGER Graph_Viz from
+  // its own content (see isDaggerGraph). Carries the typed node/edge index that
+  // the hierarchy-aware UI reads — labels, media, handling, clock fields.
+  // Undefined for every other file, which is how the generic path stays
+  // untouched: a consumer that does not look at this field sees no change.
+  dagger?: DaggerIndex;
 }
 
 // Priority order used to pick a recommended default array when a JSON object
@@ -439,6 +465,273 @@ function attachCompanionNodes(
   return edgeOption;
 }
 
+// ─────────────────────────── DAGGER Graph_Viz ingestion ──────────────────────
+//
+// A DAGGER-shaped file is recognised FROM ITS OWN CONTENT — `hierarchy` on the
+// nodes and `hierarchy_link` on the edges. There is no flag, no toggle and no
+// filename check, so the same file works however it reaches the app (sample
+// button, drag-and-drop, URL) and a non-DAGGER file can never be mistaken for
+// one. When detection says no, every line below is skipped and the generic
+// loader behaves exactly as it did before this sprint.
+
+/** Share of sampled records that must carry the marker field. Matches the 0.9
+ *  threshold `inferType` and `findNodeIdField` already use. */
+const DAGGER_MATCH_RATIO = 0.9;
+const DAGGER_SAMPLE_SIZE = 50;
+
+function nonEmptyString(v: unknown): v is string {
+  return typeof v === 'string' && v.trim() !== '';
+}
+
+function ratioWith(items: Record<string, unknown>[], key: string): number {
+  if (items.length === 0) return 0;
+  const sample = items.slice(0, Math.min(items.length, DAGGER_SAMPLE_SIZE));
+  const hits = sample.filter(r => nonEmptyString(r[key])).length;
+  return hits / sample.length;
+}
+
+/**
+ * Content detection for a DAGGER `Graph_Viz.json`. True when the value is an
+ * object carrying a `nodes` array whose records have `node` + `hierarchy`, and
+ * an `edges` array whose records have `hierarchy_link`.
+ *
+ * Deliberately strict on all three markers: `Test_Graph_Viz.csv` is the EDGE
+ * table alone, so it has `hierarchy_link` but no node array and is (correctly)
+ * NOT detected — there is nothing to index without the nodes.
+ */
+export function isDaggerGraph(data: unknown): data is DaggerGraph {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  const obj = data as Record<string, unknown>;
+  const nodes = obj.nodes;
+  const edges = obj.edges;
+  if (!Array.isArray(nodes) || nodes.length === 0) return false;
+  if (!Array.isArray(edges) || edges.length === 0) return false;
+  const nodeRecs = nodes.filter(n => n && typeof n === 'object' && !Array.isArray(n)) as Record<string, unknown>[];
+  const edgeRecs = edges.filter(e => e && typeof e === 'object' && !Array.isArray(e)) as Record<string, unknown>[];
+  if (nodeRecs.length !== nodes.length || edgeRecs.length !== edges.length) return false;
+  return (
+    ratioWith(nodeRecs, 'node') >= DAGGER_MATCH_RATIO &&
+    ratioWith(nodeRecs, 'hierarchy') >= DAGGER_MATCH_RATIO &&
+    ratioWith(edgeRecs, 'hierarchy_link') >= DAGGER_MATCH_RATIO
+  );
+}
+
+/**
+ * Build the lookup Dana, Ravi and the timeline read from. Nodes are stored
+ * UNFLATTENED, so `media[]` is still an array and `handling{}` still an object;
+ * flattening them would turn `media[0].path` into a string field and lose the
+ * second media entry entirely.
+ *
+ * A duplicate `node` id keeps the FIRST record — the pipeline places one cluster
+ * once per category with a distinct `..._000N` id, so duplicates are not
+ * expected; first-wins simply makes the outcome deterministic if one appears.
+ */
+export function buildDaggerIndex(graph: DaggerGraph): DaggerIndex {
+  const nodesById = new Map<string, DaggerNode>();
+  const labelById = new Map<string, string>();
+  for (const n of graph.nodes) {
+    const id = n?.node;
+    if (!nonEmptyString(id)) continue;
+    if (nodesById.has(id)) continue;
+    nodesById.set(id, n);
+    if (nonEmptyString(n.label)) labelById.set(id, n.label);
+  }
+  return { nodesById, edges: graph.edges, labelById };
+}
+
+export function isTripletNode(n: DaggerNode | undefined | null): n is DaggerTripletNode {
+  return !!n && n.hierarchy === 'TRIPLET';
+}
+
+export function isClusterNode(n: DaggerNode | undefined | null): n is DaggerClusterNode {
+  return !!n && n.hierarchy === 'CLUSTER';
+}
+
+/** A category node — `hierarchy` matching H followed by digits (H000, H001, …). */
+export function isCategoryNode(n: DaggerNode | undefined | null): n is DaggerCategoryNode {
+  return !!n && typeof n.hierarchy === 'string' && /^H\d+$/.test(n.hierarchy);
+}
+
+/**
+ * The integer tier of a category node. Prefers the pipeline's own `tier` field
+ * and derives it from the hierarchy string only when `tier` is absent. Returns
+ * null for cluster and triplet nodes, which have no tier.
+ */
+export function daggerNodeTier(n: DaggerNode | undefined | null): number | null {
+  if (!n) return null;
+  if (typeof n.tier === 'number' && Number.isFinite(n.tier)) return n.tier;
+  const m = typeof n.hierarchy === 'string' ? /^H(\d+)$/.exec(n.hierarchy) : null;
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * The text to render for a node. Always the `label` field — never the id.
+ * Falls back to the id only when a node genuinely has no label, which the
+ * pipeline does not produce; the fallback exists so an unlabelled node is still
+ * findable rather than blank.
+ */
+export function daggerNodeLabel(n: DaggerNode | undefined | null): string {
+  if (!n) return '';
+  if (nonEmptyString(n.label)) return n.label;
+  return nonEmptyString(n.node) ? n.node : '';
+}
+
+/**
+ * The node's media entries, ALWAYS an array. Absent, null or malformed `media`
+ * yields `[]`, so a caller can map over the result without a guard. Entries
+ * without a usable `path` are dropped — there is nothing to point a base URL at.
+ */
+export function daggerNodeMedia(n: DaggerNode | undefined | null): DaggerMedia[] {
+  if (!n) return [];
+  const raw = (n as DaggerTripletNode).media;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((m): m is DaggerMedia =>
+    !!m && typeof m === 'object' && !Array.isArray(m) && nonEmptyString((m as DaggerMedia).path));
+}
+
+/**
+ * The node's HANDLING block, or null when it has none. Returns the pipeline's
+ * object untouched: `content_blur` is NOT recomputed here, because false at
+ * exactly 0.0 and true everywhere else is the pipeline's answer, and a UI that
+ * re-derives it will drift from it.
+ */
+export function daggerNodeHandling(n: DaggerNode | undefined | null): DaggerHandling | null {
+  if (!n) return null;
+  const raw = (n as DaggerTripletNode).handling;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (typeof raw.sensitivity !== 'number' || !Number.isFinite(raw.sensitivity)) return null;
+  return raw;
+}
+
+/**
+ * The node's warning tags, always an array, with the `["None"]` no-warning
+ * answer normalised away to `[]` so the UI stays quiet instead of rendering a
+ * chip reading "None". Any other tag is passed through verbatim — the
+ * vocabulary is a living dictionary on the pipeline side and is never
+ * hard-coded or validated here.
+ */
+export function daggerWarningTags(n: DaggerNode | undefined | null): string[] {
+  const h = daggerNodeHandling(n);
+  if (!h || !Array.isArray(h.warning_tags)) return [];
+  const tags = h.warning_tags.filter(nonEmptyString).map(t => t.trim());
+  if (tags.length === 1 && tags[0].toLowerCase() === 'none') return [];
+  return tags;
+}
+
+// ── The pruning walk (AA045) ─────────────────────────────────────────────────
+//
+// THE one graph walk. Any filter that narrows the graph to a set of TRIPLETS
+// goes through here — the warning-tag filter and the modality filter are two
+// callers of the same function, not two implementations of the same rule.
+//
+// The rule, in Rusty's words: "It needs to only show the triplets -> clusters ->
+// and branches connected to them specifically. Nothing else." So the visible
+// graph is exactly the selected triplets, the cluster nodes they hang off,
+// every category node reachable UPWARD from those clusters (H000, then H001,
+// and so on to the top), and the edges joining precisely those nodes. A
+// category with no surviving triplet under it disappears, and so does its whole
+// branch.
+//
+// WHY THIS EXISTS: the previous tag filter narrowed edge ROWS by looking at
+// each row's two endpoints in isolation. A `CLUSTER_to_H000` or `H003_to_H004`
+// row has no triplet on either end, so it was always kept, and the entire
+// category tree stayed drawn behind a handful of surviving triplets. Only the
+// 22 `TRIPLET_to_CLUSTER` rows could ever drop. Judging a row by its own two
+// endpoints cannot answer a question about reachability; nothing short of a
+// walk can.
+
+/** What survives a filter: the node set, and the rows that join those nodes. */
+export interface DaggerSubgraph {
+  /**
+   * Every node id that survives — the selected triplets plus everything
+   * reachable upward from them. This is the answer to "is this node visible?"
+   * for anything that has to decide per node (selection highlighting, counts).
+   *
+   * A node here is *eligible* to be drawn. The graph is built from edge rows,
+   * so a surviving node that ends up on no surviving row is not drawn — that is
+   * pre-existing behaviour (VB005), not something this walk introduces.
+   */
+  nodes: Set<string>;
+  /** The surviving rows, in the order they were given. Never the same array. */
+  rows: Record<string, unknown>[];
+}
+
+/**
+ * Prune a graph to the branches that carry a chosen set of triplets.
+ *
+ * `selectedTripletIds` is whatever the caller's filter selected — tag, modality,
+ * or two of them intersected. Compose by intersecting the ID SETS and calling
+ * this once; do not run it twice and merge the results, which would keep a
+ * branch that only one of the two filters wanted.
+ *
+ * The hierarchy is walked over `index.edges` — the file's own edges — not over
+ * `rows`, so an ancestor is still found when an unrelated field filter has
+ * already dropped the row that would have led to it. Direction is the file's:
+ * a DAGGER edge points child → parent (`TRIPLET_to_CLUSTER` has the triplet as
+ * `source`), so "upward" is simply "outgoing", and no tier arithmetic or
+ * `hierarchy_link` string parsing is involved. That is also why a `misc: true`
+ * node behaves correctly for free: it has no upward edges, so the walk stops
+ * there and it floats with its own branch, exactly as the pipeline intends.
+ *
+ * A row is kept when BOTH of its endpoints survive. An endpoint that is empty,
+ * or that is not a node of this graph at all, is not judged — so a dataset that
+ * merely happens to be open alongside a DAGGER index is never silently emptied.
+ *
+ * An EMPTY `selectedTripletIds` prunes everything, and that is correct: it is
+ * "no triplet matched", not "no filter". A caller with no active filter must
+ * not call this at all and should use its rows unchanged.
+ */
+export function daggerVisibleSubgraph(
+  rows: Record<string, unknown>[],
+  index: DaggerIndex,
+  selectedTripletIds: ReadonlySet<string>,
+  sourceField: string,
+  targetField: string,
+): DaggerSubgraph {
+  // child → parents, built from the file's edges.
+  const upward = new Map<string, string[]>();
+  for (const e of index.edges) {
+    const s = e?.source;
+    const t = e?.target;
+    if (!nonEmptyString(s) || !nonEmptyString(t)) continue;
+    const parents = upward.get(s);
+    if (parents) parents.push(t);
+    else upward.set(s, [t]);
+  }
+
+  // Breadth of the walk does not matter, only its closure; an explicit stack
+  // keeps it iterative, so a deep or cyclic hierarchy cannot blow the stack.
+  const nodes = new Set<string>();
+  const pending: string[] = [];
+  for (const id of selectedTripletIds) {
+    if (!index.nodesById.has(id) || nodes.has(id)) continue;
+    nodes.add(id);
+    pending.push(id);
+  }
+  while (pending.length > 0) {
+    const current = pending.pop() as string;
+    const parents = upward.get(current);
+    if (!parents) continue;
+    for (const parent of parents) {
+      if (nodes.has(parent)) continue;
+      nodes.add(parent);
+      pending.push(parent);
+    }
+  }
+
+  const survives = (value: unknown): boolean => {
+    if (value === null || value === undefined || value === '') return true;
+    const id = String(value);
+    if (!index.nodesById.has(id)) return true;
+    return nodes.has(id);
+  };
+
+  return {
+    nodes,
+    rows: rows.filter(r => survives(r[sourceField]) && survives(r[targetField])),
+  };
+}
+
 /**
  * Parse a file into one or more dataset options. Behaviour:
  *  - CSV → single option (just the rows).
@@ -490,6 +783,13 @@ export async function parseFileToOptions(file: File): Promise<DatasetOption[]> {
   }
   if (arrays.length === 0) throw new Error('No arrays of objects found in JSON');
 
+  // ── DAGGER Graph_Viz: build the typed index once, from the raw parsed JSON ──
+  // Done here, before the arrays are flattened, because flattening would turn
+  // `media[]` into `media[0].path` strings and `handling{}` into dotted scalars.
+  // The index is attached to EVERY option from this file, so switching between
+  // the `edges` and `nodes` views in the source picker does not lose it.
+  const daggerIndex = isDaggerGraph(data) ? buildDaggerIndex(data) : undefined;
+
   // ── Auto-join: graph files shaped like { nodes: [...], edges: [...] } ───────
   // Identify the node array and the edge array. When we have both, the edge
   // array becomes the recommended default (that's what draws the graph) and we
@@ -499,6 +799,7 @@ export async function parseFileToOptions(file: File): Promise<DatasetOption[]> {
   const nodeArrays = arrays.filter(a => !looksLikeEdgeArray(a.key, a.items) && findNodeIdField(a.items));
 
   const opts = arrays.map(a => makeArrayOption(a.key, a.items, file.name, false));
+  if (daggerIndex) for (const o of opts) o.dagger = daggerIndex;
 
   if (edgeArrays.length >= 1 && nodeArrays.length >= 1) {
     // Pick the first edge array as the join target, first node array as the source.
@@ -519,7 +820,12 @@ export async function parseFileToOptions(file: File): Promise<DatasetOption[]> {
   const preferred = PREFERRED_ARRAY_KEYS.map(k => arrays.findIndex(a => a.key === k)).find(i => i >= 0);
   const defaultIdx = preferred !== undefined ? preferred : 0;
 
-  return arrays.map((a, i) => makeArrayOption(a.key, a.items, file.name, i === defaultIdx));
+  // Reuse `opts` rather than rebuilding: identical content (same arrays, same
+  // flatten, same field detection), one less full pass, and it keeps whatever
+  // was attached above. A DAGGER file always has both a node and an edge array
+  // so it never reaches this branch, but nothing here assumes that.
+  if (opts[defaultIdx]) opts[defaultIdx].recommended = true;
+  return opts;
 }
 
 export async function parseURLToOptions(url: string, displayName?: string): Promise<DatasetOption[]> {
