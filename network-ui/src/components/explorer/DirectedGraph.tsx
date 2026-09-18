@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as d3 from 'd3';
 import type { FieldInfo } from '../../lib/parseData';
 import type { VisualMapping } from '../../lib/mapping';
 import { DEGREE_IN, DEGREE_OUT, DEGREE_TOTAL, isDegreeSentinel } from '../../lib/mapping';
+
+/**
+ * Which tier of the DAGGER hierarchy a node belongs to. Supplied per node id by
+ * `DataExplorer` from the loader's index (`isTripletNode` / `isClusterNode` /
+ * `isCategoryNode`) — this component never re-derives it from a field name.
+ */
+export type DaggerNodeKind = 'triplet' | 'cluster' | 'category';
 
 interface Props {
   rows: Record<string, unknown>[];
@@ -17,6 +24,40 @@ interface Props {
   /** When non-null, per-node timeline opacity (0..1) keyed by node id. Nodes
    *  absent from the map (or the whole map being null) are treated as opacity 1. */
   nodeOpacity?: Map<string, number> | null;
+  /**
+   * node id → display text. When a node id is present here its label is drawn
+   * and shown in the tooltip instead of the raw id; ids absent from the map (or
+   * a null map) keep rendering the id exactly as before.
+   *
+   * This is how a DAGGER triplet reads `subject → predicate → object` instead
+   * of `01m26bdkvb8nme84khpcqzrmqs_0001`. It is supplied only for files the
+   * loader detected as DAGGER-shaped, so every other dataset is unchanged.
+   * The graph is still keyed, joined, filtered and selected BY ID — this is
+   * presentation only, and two nodes sharing a label stay two nodes.
+   */
+  nodeLabels?: Map<string, string> | null;
+  /**
+   * node id → its DAGGER tier, so a triplet, a cluster and a category are three
+   * visibly different things (AA047). Supplied only for a DAGGER-detected file;
+   * a null map (or an id absent from it) keeps the previous single fill colour,
+   * so every other dataset looks exactly as it did.
+   *
+   * An explicit `mapping.nodeColorField` still wins: colouring by a field is
+   * something the viewer asked for on purpose, and the tier colours are the
+   * DEFAULT they replace, not an override of a choice.
+   */
+  nodeKinds?: Map<string, DaggerNodeKind> | null;
+  /**
+   * The node ids to light up in the selection colour: the node actually clicked
+   * plus every OTHER VISIBLE node that is the same thing — the same `triplet_id`
+   * on a triplet, the same `cluster_id` on a cluster. A cluster placed under
+   * three categories is three node ids, and all three light at once.
+   *
+   * `DataExplorer` decides membership, because only it knows what a filter has
+   * pruned. This component just paints what it is handed; ids that are not drawn
+   * simply are not here to paint.
+   */
+  litNodes?: Set<string> | null;
   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
   spread?: number;
   /**
@@ -50,6 +91,41 @@ interface Link extends d3.SimulationLinkDatum<Node> {
 }
 
 const PALETTE = d3.schemeTableau10;
+
+// ── AA047: the node palette ──────────────────────────────────────────────────
+//
+// Rusty: "I would also like a color scheme to distinguish between triplets,
+// clusters, and categories. […] We already have a blue highlight line when a
+// section is clicked. Have the actual selected node turn bright green or yellow
+// within that blue highlight."
+//
+// So there are two independent jobs and one constraint. The KIND colours say
+// what a node is; the SELECTION colour says what you clicked and where else
+// that same thing appears. Neither may be confusable with the other, and
+// neither may be confusable with the cyan-blue this graph already uses for a
+// selected node's ring, its edges and its arrowheads.
+//
+// The hues are therefore kept far apart: rose and purple for the two
+// data-bearing tiers, a neutral slate for the category scaffolding above them
+// (structure, not content — it should recede), and lime for selection, which is
+// the "bright green or yellow" he asked for and sits nowhere near cyan. All
+// four are read against the graph's near-black `bg-gray-950` surface, and all
+// four keep their contrast against the white node ring.
+//
+// One place, four names. Nothing below writes a colour literal.
+const DAGGER_KIND_FILL: Record<DaggerNodeKind, string> = {
+  triplet: '#fb7185',   // rose-400
+  cluster: '#c084fc',   // purple-400
+  category: '#94a3b8',  // slate-400
+};
+/** The fill every node had before AA047, and still has when no kind is known. */
+const NODE_FILL_DEFAULT = '#60a5fa';
+/** The clicked node AND every other visible occurrence of the same thing. */
+const SELECTION_FILL = '#a3e635';   // lime-400
+/** The existing blue highlight on a clicked section — unchanged, just named. */
+const SELECTION_RING = '#06b6d4';
+/** The ring every other node wears. */
+const NODE_RING = '#fff';
 
 function fmt(v: unknown): string {
   if (v === null || v === undefined) return '—';
@@ -93,6 +169,9 @@ export default function DirectedGraph({
   highlightedNodes = null,
   highlightedEdgeKeys = null,
   nodeOpacity = null,
+  nodeLabels = null,
+  nodeKinds = null,
+  litNodes = null,
   spread = 1.0,
   edgeLabelMode = 'auto',
 }: Props) {
@@ -188,6 +267,18 @@ export default function DirectedGraph({
     return d3.scaleOrdinal<string, string>().domain(keys).range(PALETTE);
   }, [graph.nodes, mapping.nodeColorField]);
 
+  // A node's colour when it is NOT lit by the selection (AA047). Precedence:
+  //   1. an explicit `nodeColorField` mapping — the viewer asked for that
+  //   2. the node's DAGGER tier, when the loader detected one
+  //   3. the flat default every dataset had before this sprint
+  // Shared by the build effect and the selection effect so a node repaints to
+  // exactly the colour it started with when it stops being lit.
+  const nodeFill = useCallback((id: string, colorKey: string | null): string => {
+    if (colorScale && colorKey != null) return colorScale(colorKey);
+    const kind = nodeKinds?.get(id);
+    return kind ? DAGGER_KIND_FILL[kind] : NODE_FILL_DEFAULT;
+  }, [colorScale, nodeKinds]);
+
   const sizeScale = useMemo(() => {
     const max = d3.max(graph.nodes, n => n.sizeValue) ?? 1;
     return d3.scaleSqrt().domain([0, Math.max(max, 1)]).range([6, 30]);
@@ -241,7 +332,7 @@ export default function DirectedGraph({
       .attr('orient', 'auto')
       .append('path')
       .attr('d', `M0,-${ARROW_HALF + 0.5}L${ARROW_LEN + 1},0L0,${ARROW_HALF + 0.5}z`)
-      .attr('fill', '#06b6d4');
+      .attr('fill', SELECTION_RING);
 
     const g = svg.append('g');
 
@@ -334,12 +425,17 @@ export default function DirectedGraph({
 
     nodeSel.append('circle')
       .attr('r', n => sizeScale(n.sizeValue))
-      .attr('fill', n => colorScale && n.colorKey != null ? colorScale(n.colorKey) : '#60a5fa')
-      .attr('stroke', '#fff')
+      .attr('fill', n => nodeFill(n.id, n.colorKey))
+      .attr('stroke', NODE_RING)
       .attr('stroke-width', 1);
 
+    // Display text for a node id: its label when the loader supplied one,
+    // otherwise the id itself — the pre-existing behaviour for every dataset
+    // that has no label map.
+    const displayLabel = (id: string): string => nodeLabels?.get(id) ?? id;
+
     nodeSel.append('text')
-      .text(n => n.id)
+      .text(n => displayLabel(n.id))
       .attr('text-anchor', 'middle')
       .attr('dy', n => sizeScale(n.sizeValue) + 11)
       .attr('font-size', 10)
@@ -369,7 +465,9 @@ export default function DirectedGraph({
 
     nodeSel
       .on('mouseover', (event, d) => {
-        const lines: string[] = [`<strong>${d.id}</strong>`];
+        // Tooltips render with .html(), so the label is escaped like every
+        // other value — it comes from the data file, not from us.
+        const lines: string[] = [`<strong>${escapeHTML(displayLabel(d.id))}</strong>`];
         if (mapping.nodeColorField && d.colorKey != null) {
           lines.push(`${mapping.nodeColorField}: ${d.colorKey}`);
         }
@@ -492,7 +590,7 @@ export default function DirectedGraph({
       simRef.current = null;
       tooltip.remove();
     };
-  }, [graph, colorScale, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode]); // Kept edgeLabelMode
+  }, [graph, colorScale, nodeFill, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels]); // Kept edgeLabelMode
   // selectedNode handled by a separate effect below to avoid restarting the simulation on selection
 
   // Spread control — retune the existing simulation's link/charge forces
@@ -513,6 +611,15 @@ export default function DirectedGraph({
   //      edges in highlightedEdgeKeys) → dim outside, brighten inside
   //   2. node selected but no chain → highlight direct neighbours (legacy)
   //   3. nothing selected → default neutral palette
+  //
+  // AA047 rides on top of all three: whatever the case, a node in `litNodes`
+  // wears the selection fill and is never dimmed, because the whole point is to
+  // see the clicked thing's other occurrences in branches you did not click.
+  //
+  // `graph` is in the dependency list so this runs again after the build effect
+  // rebuilds the SVG. Without it a filter change while a node is selected drew
+  // fresh circles with no selection styling at all — the clicked node lost its
+  // ring and its lit occurrences went out (B032).
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
@@ -526,6 +633,11 @@ export default function DirectedGraph({
     // A node is considered "gone" (fully faded) below this threshold; its
     // edges are then hidden entirely.
     const GONE = 0.02;
+
+    // AA047: is this node the clicked one, or another visible occurrence of the
+    // same triplet_id / cluster_id? `DataExplorer` has already excluded anything
+    // a filter pruned — "this does not reflect on if the nodes are not visible."
+    const isLit = (id: string): boolean => !!litNodes && litNodes.has(id);
 
     const isLinkInChain = (l: Link): boolean => {
       if (!highlightedEdgeKeys) return false;
@@ -578,16 +690,25 @@ export default function DirectedGraph({
     // Node circles: dim everything outside the focus subnetwork (chain mode
     // OR selected+neighbours in plain selection). When nothing is selected,
     // interactiveNodes is null so all nodes stay at full opacity.
+    //
+    // AA047 adds the fill: a lit node turns lime, everything else repaints to
+    // the colour it would have had anyway (mapped field → tier → default). The
+    // clicked node keeps the cyan ring it always had, so it reads as "green
+    // INSIDE the blue highlight"; its other occurrences get the same fill and a
+    // slightly heavier white ring, which says "same thing, not the one you
+    // clicked". A lit node is also never dimmed, or the feature would be
+    // invisible in exactly the branches it exists to show.
     svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
-      .attr('stroke', d => d.id === selectedNode ? '#06b6d4' : '#fff')
-      .attr('stroke-width', d => d.id === selectedNode ? 3 : 1)
-      .attr('opacity', d => (isNodeInteractive(d.id) ? 1 : 0.12) * timeOpacity(d.id)); // node presence follows the timeline in every state
-    
+      .attr('fill', d => isLit(d.id) ? SELECTION_FILL : nodeFill(d.id, d.colorKey))
+      .attr('stroke', d => d.id === selectedNode ? SELECTION_RING : NODE_RING)
+      .attr('stroke-width', d => d.id === selectedNode ? 3 : isLit(d.id) ? 2 : 1)
+      .attr('opacity', d => ((isNodeInteractive(d.id) || isLit(d.id)) ? 1 : 0.12) * timeOpacity(d.id)); // node presence follows the timeline in every state
+
     // Node labels: hide entirely on out-of-focus nodes (display:none rather
     // than just fading), so the focused subnetwork's labels read cleanly
     // without leftover ghost text from the background.
     svg.selectAll<SVGTextElement, Node>('g.nodes g text')
-      .style('display', d => (!isNodeInteractive(d.id) || timeOpacity(d.id) < GONE) ? 'none' : null);
+      .style('display', d => ((!isNodeInteractive(d.id) && !isLit(d.id)) || timeOpacity(d.id) < GONE) ? 'none' : null);
 
     // Disable pointer events (click + tooltip) on nodes that are either
     // outside the interactive subnetwork (chain highlight set OR selected node
@@ -595,19 +716,21 @@ export default function DirectedGraph({
     // both in-focus AND present to stay interactive, so a ghost circle that has
     // decayed to zero can't be clicked or hovered. When nothing is selected,
     // interactiveNodes is null and only the timeline gate applies.
+    // A lit node stays clickable as well as visible: seeing the same cluster in
+    // another branch and not being able to click it there would be a tease.
     svg.selectAll<SVGGElement, Node>('g.nodes > g')
       .style('pointer-events', d =>
-        (isNodeInteractive(d.id) && timeOpacity(d.id) >= GONE) ? null : 'none');
+        ((isNodeInteractive(d.id) || isLit(d.id)) && timeOpacity(d.id) >= GONE) ? null : 'none');
 
     svg.selectAll<SVGLineElement, Link>('g.links line')
       .attr('stroke', l => {
         // Chain edge wins
-        if (isLinkInChain(l)) return '#06b6d4';
+        if (isLinkInChain(l)) return SELECTION_RING;
         if (highlightedNodes) return linkInHighlight(l) ? '#9ca3af' : '#374151';
         if (!selectedNode) return '#9ca3af';
         const sId = typeof l.source === 'string' ? l.source : l.source.id;
         const tId = typeof l.target === 'string' ? l.target : l.target.id;
-        return sId === selectedNode || tId === selectedNode ? '#06b6d4' : '#374151';
+        return sId === selectedNode || tId === selectedNode ? SELECTION_RING : '#374151';
       })
       .attr('stroke-opacity', l => {
         const t = linkTimeOpacity(l);
@@ -659,7 +782,7 @@ export default function DirectedGraph({
         if (highlightedNodes) return (linkInHighlight(l) ? 0.9 : 0.05) * t;
         return 0.9 * t;
       });
-  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity]);
+  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity, litNodes, nodeFill, graph]);
 
   // Legend for color scale
   const legendItems = useMemo(() => {
