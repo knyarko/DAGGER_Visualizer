@@ -735,9 +735,9 @@
         "sensitivity_conf": 0.78,
         "sensitivity_model": "SIMULATED FIXTURE",
         "content_blur": true,
-        "filter_reason": "audio: caller describes self-harm in progress",
+        "filter_reason": "image: storm-damaged homes and scattered debris, no people visible",
         "warning_tags": [
-          "Suicide"
+          "Property Damage"
         ]
       },
       "day": "27",
@@ -2362,6 +2362,534 @@
       "category": "Social and Demographics",
       "tier": 8,
       "misc": false
+    },
+    {
+      "node": "01m0h8zrq7f3kt5nzb6we1cayh_0001",
+      "label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "category": "Flooding",
+      "misc": false,
+      "triplet_count": 2
+    },
+    {
+      "node": "01m27hq3kx8d6vb0pz4nrtgc90_0001",
+      "label": "Caller → reports → floodwater rising on Bayside Road",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M27HQ3KX8D6VB0PZ4NRTGC90",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "record_id": "01M0H8ZRQ7MKCKT1SP30DFSQ10",
+      "category": "Flooding",
+      "subject": "Caller",
+      "predicate": "reports",
+      "object": "floodwater rising on Bayside Road",
+      "confidence": 0.9,
+      "justification": "SIMULATED FIXTURE: written by hand over a real 911_first6sec clip so the audio path can be exercised. The corpus carries no transcript ground truth.",
+      "msg_text": "911 call audio, first six seconds — caller states water is coming up over the road.",
+      "modality": "audio",
+      "event_name": "911_calls",
+      "triplet_categories": [
+        "Flooding"
+      ],
+      "relationship_category": [
+        "Flood"
+      ],
+      "cluster_categories": [
+        "Flooding",
+        "Public Safety",
+        "Natural Disaster"
+      ],
+      "attributes": {
+        "location": "Bayside Road"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T06:12:45",
+        "recommendation": "Route high-water rescue assets toward the reported road.",
+        "combat_element": "Flood Response Team",
+        "source": "audio",
+        "taxonomy": "inaccurate",
+        "justification": "Single caller report, not corroborated by a second source.",
+        "uoi_value": 0.2,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "audio",
+          "media_type": "audio/wav",
+          "filename": "call_10_0.wav",
+          "path": "resources/test_files/datasets/911_calls/911_first6sec/call_10_0.wav",
+          "description": "A six-second excerpt from the opening of an emergency call. A caller speaks over background noise; no identifying detail is audible in this excerpt.",
+          "conf": "0.90",
+          "model": "SIMULATED FIXTURE"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.0,
+        "sensitivity_conf": 0.92,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": false,
+        "filter_reason": "nothing sensitive present",
+        "warning_tags": [
+          "None"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "06",
+      "minute": "12",
+      "second": "45",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T06:12:45",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m0h8zrq7f3kt5nzb6we1cayh_0002",
+      "label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "category": "Public Safety",
+      "misc": false,
+      "triplet_count": 3
+    },
+    {
+      "node": "01m27hq3kx8d6vb0pz4nrtgc91_0001",
+      "label": "Dispatcher → advises → caller to move to higher ground",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M27HQ3KX8D6VB0PZ4NRTGC91",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "record_id": "01M0H8ZRQ7MKCKT1SP30DFSQ10",
+      "category": "Public Safety",
+      "subject": "Dispatcher",
+      "predicate": "advises",
+      "object": "caller to move to higher ground",
+      "confidence": 0.85,
+      "justification": "SIMULATED FIXTURE: written by hand over a real 911_first6sec clip so the audio path can be exercised. The corpus carries no transcript ground truth.",
+      "msg_text": "911 call audio, first six seconds — caller states water is coming up over the road.",
+      "modality": "audio",
+      "event_name": "911_calls",
+      "triplet_categories": [
+        "Public Safety"
+      ],
+      "relationship_category": [
+        "Public Engagement"
+      ],
+      "cluster_categories": [
+        "Flooding",
+        "Public Safety",
+        "Natural Disaster"
+      ],
+      "attributes": {
+        "instruction": "move to higher ground"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T06:12:45",
+        "recommendation": "Confirm the caller reached higher ground before closing the call.",
+        "combat_element": "Emergency Dispatch",
+        "source": "audio",
+        "taxonomy": "consistent",
+        "justification": "Instruction is stated directly by the dispatcher.",
+        "uoi_value": 0.1,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "audio",
+          "media_type": "audio/wav",
+          "filename": "call_10_0.wav",
+          "path": "resources/test_files/datasets/911_calls/911_first6sec/call_10_0.wav",
+          "description": "A six-second excerpt from the opening of an emergency call. A caller speaks over background noise; no identifying detail is audible in this excerpt.",
+          "conf": "0.90",
+          "model": "SIMULATED FIXTURE"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.25,
+        "sensitivity_conf": 0.88,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "audio: caller audibly distressed, street address spoken aloud",
+        "warning_tags": [
+          "Distress"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "06",
+      "minute": "12",
+      "second": "45",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T06:12:45",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m27hq3kx8d6vb0pz4nrtgc92_0001",
+      "label": "Caller → describes → a neighbour trapped in a vehicle",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M27HQ3KX8D6VB0PZ4NRTGC92",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "record_id": "01M0H8ZRQ7MKCKT1SP30DFSQ11",
+      "category": "Public Safety",
+      "subject": "Caller",
+      "predicate": "describes",
+      "object": "a neighbour trapped in a vehicle",
+      "confidence": 0.8,
+      "justification": "SIMULATED FIXTURE: written by hand over two real 911_first6sec clips so a record carrying more than one media entry can be exercised. The corpus carries no transcript ground truth.",
+      "msg_text": "911 call audio, two six-second excerpts from the same call record.",
+      "modality": "audio",
+      "event_name": "911_calls",
+      "triplet_categories": [
+        "Public Safety"
+      ],
+      "relationship_category": [
+        "Public Engagement"
+      ],
+      "cluster_categories": [
+        "Flooding",
+        "Public Safety",
+        "Natural Disaster"
+      ],
+      "attributes": {
+        "persons_involved": "one neighbour"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T09:03:27",
+        "recommendation": "Task a vehicle-extraction capable unit to the reported location.",
+        "combat_element": "Search and Rescue",
+        "source": "audio",
+        "taxonomy": "inconsistent",
+        "justification": "The two excerpts of this record give different counts of people present.",
+        "uoi_value": 0.35,
+        "uoi_assessment": "medium"
+      },
+      "media": [
+        {
+          "channel": "audio",
+          "media_type": "audio/wav",
+          "filename": "call_100_0.wav",
+          "path": "resources/test_files/datasets/911_calls/911_first6sec/call_100_0.wav",
+          "description": "A six-second excerpt from the opening of an emergency call. The caller is speaking quickly; a second voice is faintly audible behind them.",
+          "conf": "0.88",
+          "model": "SIMULATED FIXTURE"
+        },
+        {
+          "channel": "audio",
+          "media_type": "audio/wav",
+          "filename": "call_101_0.wav",
+          "path": "resources/test_files/datasets/911_calls/911_first6sec/call_101_0.wav",
+          "description": "A second six-second excerpt attached to the same call record. Road noise dominates the first two seconds.",
+          "conf": "0.83",
+          "model": "SIMULATED FIXTURE"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.5,
+        "sensitivity_conf": 0.81,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "audio: caller reports a person injured and unable to get out",
+        "warning_tags": [
+          "Injury"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "09",
+      "minute": "03",
+      "second": "27",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T09:03:27",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m27hq3kx8d6vb0pz4nrtgc93_0001",
+      "label": "Caller → reports → a person unaccounted for downstream",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M27HQ3KX8D6VB0PZ4NRTGC93",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "record_id": "01M0H8ZRQ7MKCKT1SP30DFSQ12",
+      "category": "Public Safety",
+      "subject": "Caller",
+      "predicate": "reports",
+      "object": "a person unaccounted for downstream",
+      "confidence": 0.75,
+      "justification": "SIMULATED FIXTURE: written by hand over a real 911_first6sec clip so the audio path can be exercised. The corpus carries no transcript ground truth.",
+      "msg_text": "911 call audio, first six seconds — caller states someone was carried away by the current.",
+      "modality": "audio",
+      "event_name": "911_calls",
+      "triplet_categories": [
+        "Public Safety"
+      ],
+      "relationship_category": [
+        "Public Engagement"
+      ],
+      "cluster_categories": [
+        "Flooding",
+        "Public Safety",
+        "Natural Disaster"
+      ],
+      "attributes": {
+        "status": "unaccounted for"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T14:58:02",
+        "recommendation": "Open a missing-person track and search downstream of the reported point.",
+        "combat_element": "Search and Rescue",
+        "source": "audio",
+        "taxonomy": "inaccurate",
+        "justification": "Caller did not witness the outcome directly.",
+        "uoi_value": 0.45,
+        "uoi_assessment": "medium"
+      },
+      "media": [
+        {
+          "channel": "audio",
+          "media_type": "audio/wav",
+          "filename": "call_102_0.wav",
+          "path": "resources/test_files/datasets/911_calls/911_first6sec/call_102_0.wav",
+          "description": "A six-second excerpt from the opening of an emergency call. The caller's voice is raised and breaks partway through the excerpt.",
+          "conf": "0.86",
+          "model": "SIMULATED FIXTURE"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.75,
+        "sensitivity_conf": 0.84,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "audio: caller reports a person swept away, outcome unknown",
+        "warning_tags": [
+          "Death",
+          "Distress"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "14",
+      "minute": "58",
+      "second": "02",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T14:58:02",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m27hq3kx8d6vb0pz4nrtgc94_0001",
+      "label": "Background audio → captures → wind and debris noise",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M27HQ3KX8D6VB0PZ4NRTGC94",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "record_id": "01M0H8ZRQ7MKCKT1SP30DFSQ12",
+      "category": "Flooding",
+      "subject": "Background audio",
+      "predicate": "captures",
+      "object": "wind and debris noise",
+      "confidence": 0.6,
+      "justification": "SIMULATED FIXTURE: written by hand over a real 911_first6sec clip so a record with a handling block and NO warning tags can be exercised. The corpus carries no transcript ground truth.",
+      "msg_text": "911 call audio, first six seconds — caller states someone was carried away by the current.",
+      "modality": "audio",
+      "event_name": "911_calls",
+      "triplet_categories": [
+        "Flooding"
+      ],
+      "relationship_category": [
+        "Flood"
+      ],
+      "cluster_categories": [
+        "Flooding",
+        "Public Safety",
+        "Natural Disaster"
+      ],
+      "attributes": {
+        "ambient": "wind, moving debris"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T14:58:02",
+        "recommendation": "Treat ambient noise as a weather indicator only, not as a report.",
+        "combat_element": "Environmental Monitoring",
+        "source": "audio",
+        "taxonomy": "consistent",
+        "justification": "Ambient content only; nothing is asserted by a speaker.",
+        "uoi_value": 0.05,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "audio",
+          "media_type": "audio/wav",
+          "filename": "call_102_0.wav",
+          "path": "resources/test_files/datasets/911_calls/911_first6sec/call_102_0.wav",
+          "description": "A six-second excerpt from the opening of an emergency call. The caller's voice is raised and breaks partway through the excerpt.",
+          "conf": "0.86",
+          "model": "SIMULATED FIXTURE"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.1,
+        "sensitivity_conf": 0.9,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "audio: background voices only, no identifying detail",
+        "warning_tags": []
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "14",
+      "minute": "58",
+      "second": "02",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T14:58:02",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m0h8zrq7f3kt5nzb6we1cayh_0003",
+      "label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "category": "Natural Disaster",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m27hq3kx8d6vb0pz4nrtgc95_0001",
+      "label": "Dispatcher → confirms → an engine company is en route",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M27HQ3KX8D6VB0PZ4NRTGC95",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "record_id": "01M0H8ZRQ7MKCKT1SP30DFSQ13",
+      "category": "Natural Disaster",
+      "subject": "Dispatcher",
+      "predicate": "confirms",
+      "object": "an engine company is en route",
+      "confidence": 0.88,
+      "justification": "SIMULATED FIXTURE: written by hand over a real 911_first6sec clip so a record with NO handling block at all can be exercised. The corpus carries no transcript ground truth.",
+      "msg_text": "911 call audio, first six seconds — dispatcher confirms units are moving.",
+      "modality": "audio",
+      "event_name": "911_calls",
+      "triplet_categories": [
+        "Natural Disaster"
+      ],
+      "relationship_category": [
+        "Natural"
+      ],
+      "cluster_categories": [
+        "Flooding",
+        "Public Safety",
+        "Natural Disaster"
+      ],
+      "attributes": {
+        "unit": "engine company"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T23:47:58",
+        "recommendation": "Track the assigned unit to arrival.",
+        "combat_element": "Emergency Dispatch",
+        "source": "audio",
+        "taxonomy": "consistent",
+        "justification": "Dispatcher states the assignment directly.",
+        "uoi_value": 0.05,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "audio",
+          "media_type": "audio/wav",
+          "filename": "call_103_0.wav",
+          "path": "resources/test_files/datasets/911_calls/911_first6sec/call_103_0.wav",
+          "description": "A six-second excerpt from the opening of an emergency call. Two speakers overlap briefly at the start of the excerpt.",
+          "conf": "0.84",
+          "model": "SIMULATED FIXTURE"
+        }
+      ],
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "23",
+      "minute": "47",
+      "second": "58",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T23:47:58",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m0h8zrq7f3kt5nzb6we1cayj_0001",
+      "label": "01M0H8ZRQ7F3KT5NZB6WE1CAYJ",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYJ",
+      "category": "MISC",
+      "misc": true,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m27hq3kx8d6vb0pz4nrtgc96_0001",
+      "label": "Caller → gives → an address outside the mapped area",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M27HQ3KX8D6VB0PZ4NRTGC96",
+      "cluster_id": "01M0H8ZRQ7F3KT5NZB6WE1CAYJ",
+      "record_id": "01M0H8ZRQ7MKCKT1SP30DFSQ14",
+      "category": "MISC",
+      "subject": "Caller",
+      "predicate": "gives",
+      "object": "an address outside the mapped area",
+      "confidence": 0.55,
+      "justification": "SIMULATED FIXTURE: written by hand over a real 911_first6sec clip so a misc cluster — one the pipeline could not place under any category — can be exercised. The corpus carries no transcript ground truth.",
+      "msg_text": "911 call audio, first six seconds — caller gives a location the pipeline could not resolve.",
+      "modality": "audio",
+      "event_name": "911_calls",
+      "triplet_categories": [
+        "MISC"
+      ],
+      "relationship_category": [],
+      "cluster_categories": [
+        "MISC"
+      ],
+      "attributes": {
+        "resolution": "unresolved location"
+      },
+      "eti_message": {
+        "timestamp": "2017-10-10T03:15:11",
+        "recommendation": "Route to a human analyst; the location could not be resolved automatically.",
+        "combat_element": "Analyst Review",
+        "source": "audio",
+        "taxonomy": "inaccurate",
+        "justification": "The stated address does not resolve against the mapped area.",
+        "uoi_value": 0.6,
+        "uoi_assessment": "high"
+      },
+      "media": [
+        {
+          "channel": "audio",
+          "media_type": "audio/wav",
+          "filename": "call_101_0.wav",
+          "path": "resources/test_files/datasets/911_calls/911_first6sec/call_101_0.wav",
+          "description": "A second six-second excerpt attached to the same call record. Road noise dominates the first two seconds.",
+          "conf": "0.83",
+          "model": "SIMULATED FIXTURE"
+        }
+      ],
+      "handling": {
+        "sensitivity": 1.0,
+        "sensitivity_conf": 0.76,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "audio: caller describes a fatality at the scene and names the person",
+        "warning_tags": [
+          "Death",
+          "Distress"
+        ]
+      },
+      "day": "10",
+      "month": "10",
+      "year": "2017",
+      "hour": "03",
+      "minute": "15",
+      "second": "11",
+      "timezone": "UTC",
+      "timestamp": "2017-10-10T03:15:11",
+      "date": "10/10/2017"
     }
   ],
   "edges": [
@@ -3282,6 +3810,96 @@
       "target_label": "Social and Demographics",
       "hierarchy_link": "H007_to_H008",
       "predicate": ""
+    },
+    {
+      "legend_key_id": "01m0h8zrq7f3kt5nzb6we1cayh_0001_to_flooding",
+      "source": "01m0h8zrq7f3kt5nzb6we1cayh_0001",
+      "target": "flooding_h000",
+      "source_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "target_label": "Flooding",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m0h8zrq7f3kt5nzb6we1cayh_0002_to_public_safety",
+      "source": "01m0h8zrq7f3kt5nzb6we1cayh_0002",
+      "target": "public_safety_h000",
+      "source_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "target_label": "Public Safety",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m0h8zrq7f3kt5nzb6we1cayh_0003_to_natural_disaster",
+      "source": "01m0h8zrq7f3kt5nzb6we1cayh_0003",
+      "target": "natural_disaster_h000",
+      "source_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "target_label": "Natural Disaster",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m27hq3kx8d6vb0pz4nrtgc90_0001_to_01m0h8zrq7f3kt5nzb6we1cayh",
+      "source": "01m27hq3kx8d6vb0pz4nrtgc90_0001",
+      "target": "01m0h8zrq7f3kt5nzb6we1cayh_0001",
+      "source_label": "Caller → reports → floodwater rising on Bayside Road",
+      "target_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "reports"
+    },
+    {
+      "legend_key_id": "01m27hq3kx8d6vb0pz4nrtgc94_0001_to_01m0h8zrq7f3kt5nzb6we1cayh",
+      "source": "01m27hq3kx8d6vb0pz4nrtgc94_0001",
+      "target": "01m0h8zrq7f3kt5nzb6we1cayh_0001",
+      "source_label": "Background audio → captures → wind and debris noise",
+      "target_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "captures"
+    },
+    {
+      "legend_key_id": "01m27hq3kx8d6vb0pz4nrtgc91_0001_to_01m0h8zrq7f3kt5nzb6we1cayh",
+      "source": "01m27hq3kx8d6vb0pz4nrtgc91_0001",
+      "target": "01m0h8zrq7f3kt5nzb6we1cayh_0002",
+      "source_label": "Dispatcher → advises → caller to move to higher ground",
+      "target_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "advises"
+    },
+    {
+      "legend_key_id": "01m27hq3kx8d6vb0pz4nrtgc92_0001_to_01m0h8zrq7f3kt5nzb6we1cayh",
+      "source": "01m27hq3kx8d6vb0pz4nrtgc92_0001",
+      "target": "01m0h8zrq7f3kt5nzb6we1cayh_0002",
+      "source_label": "Caller → describes → a neighbour trapped in a vehicle",
+      "target_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "describes"
+    },
+    {
+      "legend_key_id": "01m27hq3kx8d6vb0pz4nrtgc93_0001_to_01m0h8zrq7f3kt5nzb6we1cayh",
+      "source": "01m27hq3kx8d6vb0pz4nrtgc93_0001",
+      "target": "01m0h8zrq7f3kt5nzb6we1cayh_0002",
+      "source_label": "Caller → reports → a person unaccounted for downstream",
+      "target_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "reports"
+    },
+    {
+      "legend_key_id": "01m27hq3kx8d6vb0pz4nrtgc95_0001_to_01m0h8zrq7f3kt5nzb6we1cayh",
+      "source": "01m27hq3kx8d6vb0pz4nrtgc95_0001",
+      "target": "01m0h8zrq7f3kt5nzb6we1cayh_0003",
+      "source_label": "Dispatcher → confirms → an engine company is en route",
+      "target_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "confirms"
+    },
+    {
+      "legend_key_id": "01m27hq3kx8d6vb0pz4nrtgc96_0001_to_01m0h8zrq7f3kt5nzb6we1cayj",
+      "source": "01m27hq3kx8d6vb0pz4nrtgc96_0001",
+      "target": "01m0h8zrq7f3kt5nzb6we1cayj_0001",
+      "source_label": "Caller → gives → an address outside the mapped area",
+      "target_label": "01M0H8ZRQ7F3KT5NZB6WE1CAYJ",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "gives"
     }
   ]
 }
