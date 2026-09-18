@@ -1,0 +1,3287 @@
+{
+  "nodes": [
+    {
+      "node": "01m0h8zqz63cre3vbhw0yzbhxh_0001",
+      "label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "category": "Event Cancellation",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m26bdkvb8nme84khpcqzrmqs_0001",
+      "label": "California schools → call off → all sports",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M26BDKVB8NME84KHPCQZRMQS",
+      "cluster_id": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "record_id": "01M0H8ZQZ6A821R62Z1YN58E6Q",
+      "category": "Event Cancellation",
+      "subject": "California schools",
+      "predicate": "call off",
+      "object": "all sports",
+      "confidence": 0.95,
+      "justification": "Stated directly in the message text: '#California schools call off all sports because of rising smoke and ash from #CanyonFire2'.",
+      "msg_text": "#California schools call off all sports because of rising smoke and ash from #CanyonFire2 https://t.co/ORXsOxqCbt https://t.co/u4MHO7hjeZ",
+      "modality": "text+image",
+      "event_name": "california_wildfires",
+      "triplet_categories": [
+        "Event Cancellation"
+      ],
+      "relationship_category": [
+        "Event"
+      ],
+      "cluster_categories": [
+        "Event Cancellation",
+        "Wildfire Location",
+        "Environmental Threat",
+        "Public Safety"
+      ],
+      "attributes": {
+        "reason": "rising smoke and ash",
+        "event": "#CanyonFire2"
+      },
+      "eti_message": {
+        "timestamp": "2017-10-10T00:00:00",
+        "recommendation": "Coordinate contingency plans for educational sports activities.",
+        "combat_element": "Environmental Safety Measures",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "Direct extraction from text unverified by further external evidence.",
+        "uoi_value": 0.05,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "california_wildfires__10_10_2017__917804456422473734_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/california_wildfires__10_10_2017__917804456422473734_0.jpg",
+          "description": "An aerial, high-angle shot depicts a large wildfire burning in a hilly, semi-arid landscape. A massive, dense plume of white and light-grey smoke billows upward and across the frame from the lower-left toward the upper-center. The fire line itself is visible along the base of the hills, adjacent to a multi-lane highway that curves through the scene. On the right side of the image, there is a suburban residential area with numerous houses, streets, and green spaces, appearing to be situated in a valley or lower elevation area. The lighting is bright and appears to be daylight, casting soft shadows across the terrain. The landscape is characterized by dry, brownish vegetation on the hillsides.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.0,
+        "sensitivity_conf": 0.95,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": false,
+        "filter_reason": "nothing sensitive present",
+        "warning_tags": [
+          "None"
+        ]
+      },
+      "day": "10",
+      "month": "10",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-10-10T00:00:00",
+      "date": "10/10/2017"
+    },
+    {
+      "node": "01m0h8zqz63cre3vbhw0yzbhxh_0002",
+      "label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "category": "Wildfire Location",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m26bdkvb8nme84khpcqzrmqt_0001",
+      "label": "Wildfire → burning in → hilly, semi-arid landscape",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M26BDKVB8NME84KHPCQZRMQT",
+      "cluster_id": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "record_id": "01M0H8ZQZ6A821R62Z1YN58E6Q",
+      "category": "Wildfire Location",
+      "subject": "Wildfire",
+      "predicate": "burning in",
+      "object": "hilly, semi-arid landscape",
+      "confidence": 0.85,
+      "justification": "The image depicts a large wildfire in a described terrain.",
+      "msg_text": "#California schools call off all sports because of rising smoke and ash from #CanyonFire2 https://t.co/ORXsOxqCbt https://t.co/u4MHO7hjeZ",
+      "modality": "text+image",
+      "event_name": "california_wildfires",
+      "triplet_categories": [
+        "Wildfire Location"
+      ],
+      "relationship_category": [
+        "Wildfire"
+      ],
+      "cluster_categories": [
+        "Event Cancellation",
+        "Wildfire Location",
+        "Environmental Threat",
+        "Public Safety"
+      ],
+      "attributes": {
+        "smoke plume": "white and light-grey",
+        "suburban proximity": "a multi-lane highway"
+      },
+      "eti_message": {
+        "timestamp": "2017-10-10T00:00:00",
+        "recommendation": "Monitor wildfire spread in semi-arid regions.",
+        "combat_element": "Environmental Monitoring",
+        "source": "text, image",
+        "taxonomy": "inconsistent",
+        "justification": "Image presents immediate conflict with reposeful suburban setting.",
+        "uoi_value": 0.15,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "california_wildfires__10_10_2017__917804456422473734_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/california_wildfires__10_10_2017__917804456422473734_0.jpg",
+          "description": "An aerial, high-angle shot depicts a large wildfire burning in a hilly, semi-arid landscape. A massive, dense plume of white and light-grey smoke billows upward and across the frame from the lower-left toward the upper-center. The fire line itself is visible along the base of the hills, adjacent to a multi-lane highway that curves through the scene. On the right side of the image, there is a suburban residential area with numerous houses, streets, and green spaces, appearing to be situated in a valley or lower elevation area. The lighting is bright and appears to be daylight, casting soft shadows across the terrain. The landscape is characterized by dry, brownish vegetation on the hillsides.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.05,
+        "sensitivity_conf": 0.9,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: structural damage only, no people",
+        "warning_tags": [
+          "Property Damage"
+        ]
+      },
+      "day": "10",
+      "month": "10",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-10-10T00:00:00",
+      "date": "10/10/2017"
+    },
+    {
+      "node": "01m0h8zqz63cre3vbhw0yzbhxh_0003",
+      "label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "category": "Environmental Threat",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m26bdkvb8nme84khpcqzrmqv_0001",
+      "label": "Wildfire smoke → poses a threat to → suburban residential area",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M26BDKVB8NME84KHPCQZRMQV",
+      "cluster_id": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "record_id": "01M0H8ZQZ6A821R62Z1YN58E6Q",
+      "category": "Environmental Threat",
+      "subject": "Wildfire smoke",
+      "predicate": "poses a threat to",
+      "object": "suburban residential area",
+      "confidence": 0.82,
+      "justification": "The suburban area, seen to the right of the wildfire in the image, appears threatened by the smoke plume.",
+      "msg_text": "#California schools call off all sports because of rising smoke and ash from #CanyonFire2 https://t.co/ORXsOxqCbt https://t.co/u4MHO7hjeZ",
+      "modality": "text+image",
+      "event_name": "california_wildfires",
+      "triplet_categories": [
+        "Environmental Threat",
+        "Public Safety"
+      ],
+      "relationship_category": [
+        "Environment and Sustainability",
+        "Public Engagement"
+      ],
+      "cluster_categories": [
+        "Event Cancellation",
+        "Wildfire Location",
+        "Environmental Threat",
+        "Public Safety"
+      ],
+      "attributes": {
+        "daylight conditions": "bright",
+        "highway proximity": "visible"
+      },
+      "eti_message": {
+        "timestamp": "2017-10-10T00:00:00",
+        "recommendation": "Notify surrounding residential areas of potential air quality hazards.",
+        "combat_element": "Civil Safety Measures",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "Visual cues suggest threat due to proximity and smoke direction.",
+        "uoi_value": 0.18,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "california_wildfires__10_10_2017__917804456422473734_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/california_wildfires__10_10_2017__917804456422473734_0.jpg",
+          "description": "An aerial, high-angle shot depicts a large wildfire burning in a hilly, semi-arid landscape. A massive, dense plume of white and light-grey smoke billows upward and across the frame from the lower-left toward the upper-center. The fire line itself is visible along the base of the hills, adjacent to a multi-lane highway that curves through the scene. On the right side of the image, there is a suburban residential area with numerous houses, streets, and green spaces, appearing to be situated in a valley or lower elevation area. The lighting is bright and appears to be daylight, casting soft shadows across the terrain. The landscape is characterized by dry, brownish vegetation on the hillsides.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 1.0,
+        "sensitivity_conf": 0.85,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: a deceased child with severe trauma",
+        "warning_tags": [
+          "Child Abuse",
+          "Death",
+          "Gore"
+        ]
+      },
+      "day": "10",
+      "month": "10",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-10-10T00:00:00",
+      "date": "10/10/2017"
+    },
+    {
+      "node": "01m0h8zqz63cre3vbhw0yzbhxh_0004",
+      "label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "category": "Public Safety",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m26bdkvb8nme84khpcqzrmqv_0002",
+      "label": "Wildfire smoke → poses a threat to → suburban residential area",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M26BDKVB8NME84KHPCQZRMQV",
+      "cluster_id": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "record_id": "01M0H8ZQZ6A821R62Z1YN58E6Q",
+      "category": "Public Safety",
+      "subject": "Wildfire smoke",
+      "predicate": "poses a threat to",
+      "object": "suburban residential area",
+      "confidence": 0.82,
+      "justification": "The suburban area, seen to the right of the wildfire in the image, appears threatened by the smoke plume.",
+      "msg_text": "#California schools call off all sports because of rising smoke and ash from #CanyonFire2 https://t.co/ORXsOxqCbt https://t.co/u4MHO7hjeZ",
+      "modality": "text+image",
+      "event_name": "california_wildfires",
+      "triplet_categories": [
+        "Environmental Threat",
+        "Public Safety"
+      ],
+      "relationship_category": [
+        "Environment and Sustainability",
+        "Public Engagement"
+      ],
+      "cluster_categories": [
+        "Event Cancellation",
+        "Wildfire Location",
+        "Environmental Threat",
+        "Public Safety"
+      ],
+      "attributes": {
+        "daylight conditions": "bright",
+        "highway proximity": "visible"
+      },
+      "eti_message": {
+        "timestamp": "2017-10-10T00:00:00",
+        "recommendation": "Notify surrounding residential areas of potential air quality hazards.",
+        "combat_element": "Civil Safety Measures",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "Visual cues suggest threat due to proximity and smoke direction.",
+        "uoi_value": 0.18,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "california_wildfires__10_10_2017__917804456422473734_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/california_wildfires__10_10_2017__917804456422473734_0.jpg",
+          "description": "An aerial, high-angle shot depicts a large wildfire burning in a hilly, semi-arid landscape. A massive, dense plume of white and light-grey smoke billows upward and across the frame from the lower-left toward the upper-center. The fire line itself is visible along the base of the hills, adjacent to a multi-lane highway that curves through the scene. On the right side of the image, there is a suburban residential area with numerous houses, streets, and green spaces, appearing to be situated in a valley or lower elevation area. The lighting is bright and appears to be daylight, casting soft shadows across the terrain. The landscape is characterized by dry, brownish vegetation on the hillsides.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 1.0,
+        "sensitivity_conf": 0.85,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: a deceased child with severe trauma",
+        "warning_tags": [
+          "Child Abuse",
+          "Death",
+          "Gore"
+        ]
+      },
+      "day": "10",
+      "month": "10",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-10-10T00:00:00",
+      "date": "10/10/2017"
+    },
+    {
+      "node": "01m0h8zqzbq2e1fh35zqz1e2kr_0001",
+      "label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "category": "Environmental Destruction",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m26bjvmq9c98q7b0rhmkm3y5_0001",
+      "label": "Wildfires → devastating → California Wine Country",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M26BJVMQ9C98Q7B0RHMKM3Y5",
+      "cluster_id": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "record_id": "01M0H8ZQZBE7RNYCPYSR1S518H",
+      "category": "Environmental Destruction",
+      "subject": "Wildfires",
+      "predicate": "devastating",
+      "object": "California Wine Country",
+      "confidence": 0.93,
+      "justification": "Stated directly in the message text: 'Take A Look At The Wildfires Devastating California Wine Country'.",
+      "msg_text": "Tuesday's Morning Email: Take A Look At The Wildfires Devastating California Wine Country https://t.co/usBx4boGjs https://t.co/1aebmF43Lz",
+      "modality": "text+image",
+      "event_name": "california_wildfires",
+      "triplet_categories": [
+        "Environmental Destruction"
+      ],
+      "relationship_category": [
+        "Environment and Sustainability"
+      ],
+      "cluster_categories": [
+        "Environmental Destruction",
+        "Fire",
+        "Structural Damage",
+        "Fire Dynamics"
+      ],
+      "attributes": {
+        "source": "text",
+        "link": "https://t.co/usBx4boGjs"
+      },
+      "eti_message": {
+        "timestamp": "2017-10-10T00:00:00",
+        "recommendation": "Increase wildfire prevention measures",
+        "combat_element": "Fire Control",
+        "source": "text, image",
+        "taxonomy": "questionable",
+        "justification": "The text directly mentions regional devastation but lacks further details.",
+        "uoi_value": 0.07,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "california_wildfires__10_10_2017__917822563807399936_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/california_wildfires__10_10_2017__917822563807399936_0.jpg",
+          "description": "A close-up, low-angle shot of a rectangular structure, possibly a crate or a section of a wall, engulfed in flames against a dark, reddish-orange background. The structure is composed of a grid of rectangular panels or bricks, which are glowing intensely from the heat. A large, bright yellow and orange flame rises from the top edge of the structure, flickering upward. The entire scene is bathed in a monochromatic, fiery red-orange light, creating a high-contrast, intense atmosphere. The texture of the structure appears rough and possibly metallic or masonry-like.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.8,
+        "sensitivity_conf": 0.79,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: severe visible trauma to a body",
+        "warning_tags": [
+          "Gore"
+        ]
+      },
+      "day": "10",
+      "month": "10",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-10-10T00:00:00",
+      "date": "10/10/2017"
+    },
+    {
+      "node": "01m0h8zqzbq2e1fh35zqz1e2kr_0002",
+      "label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "category": "Fire",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m26bjvn2k70ngznd9zjn0sws_0001",
+      "label": "Structure → is engulfed in → flames",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M26BJVN2K70NGZND9ZJN0SWS",
+      "cluster_id": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "record_id": "01M0H8ZQZBE7RNYCPYSR1S518H",
+      "category": "Fire",
+      "subject": "Structure",
+      "predicate": "is engulfed in",
+      "object": "flames",
+      "confidence": 0.85,
+      "justification": "Vision model describes 'a rectangular structure ... engulfed in flames' observed in the image.",
+      "msg_text": "Tuesday's Morning Email: Take A Look At The Wildfires Devastating California Wine Country https://t.co/usBx4boGjs https://t.co/1aebmF43Lz",
+      "modality": "text+image",
+      "event_name": "california_wildfires",
+      "triplet_categories": [
+        "Fire",
+        "Structural Damage"
+      ],
+      "relationship_category": [
+        "Fire",
+        "Structural"
+      ],
+      "cluster_categories": [
+        "Environmental Destruction",
+        "Fire",
+        "Structural Damage",
+        "Fire Dynamics"
+      ],
+      "attributes": {
+        "source": "image"
+      },
+      "eti_message": {
+        "timestamp": "2017-10-10T00:00:00",
+        "recommendation": "Maintain structural fire safety",
+        "combat_element": "Fire Safety",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "While the image analysis is detailed, it lacks confirmation from a secondary content source.",
+        "uoi_value": 0.15,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "california_wildfires__10_10_2017__917822563807399936_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/california_wildfires__10_10_2017__917822563807399936_0.jpg",
+          "description": "A close-up, low-angle shot of a rectangular structure, possibly a crate or a section of a wall, engulfed in flames against a dark, reddish-orange background. The structure is composed of a grid of rectangular panels or bricks, which are glowing intensely from the heat. A large, bright yellow and orange flame rises from the top edge of the structure, flickering upward. The entire scene is bathed in a monochromatic, fiery red-orange light, creating a high-contrast, intense atmosphere. The texture of the structure appears rough and possibly metallic or masonry-like.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.95,
+        "sensitivity_conf": 0.8,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: injuries to a child, face visible",
+        "warning_tags": [
+          "Child Abuse",
+          "Injury"
+        ]
+      },
+      "day": "10",
+      "month": "10",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-10-10T00:00:00",
+      "date": "10/10/2017"
+    },
+    {
+      "node": "01m0h8zqzbq2e1fh35zqz1e2kr_0003",
+      "label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "category": "Structural Damage",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m26bjvn2k70ngznd9zjn0sws_0002",
+      "label": "Structure → is engulfed in → flames",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M26BJVN2K70NGZND9ZJN0SWS",
+      "cluster_id": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "record_id": "01M0H8ZQZBE7RNYCPYSR1S518H",
+      "category": "Structural Damage",
+      "subject": "Structure",
+      "predicate": "is engulfed in",
+      "object": "flames",
+      "confidence": 0.85,
+      "justification": "Vision model describes 'a rectangular structure ... engulfed in flames' observed in the image.",
+      "msg_text": "Tuesday's Morning Email: Take A Look At The Wildfires Devastating California Wine Country https://t.co/usBx4boGjs https://t.co/1aebmF43Lz",
+      "modality": "text+image",
+      "event_name": "california_wildfires",
+      "triplet_categories": [
+        "Fire",
+        "Structural Damage"
+      ],
+      "relationship_category": [
+        "Fire",
+        "Structural"
+      ],
+      "cluster_categories": [
+        "Environmental Destruction",
+        "Fire",
+        "Structural Damage",
+        "Fire Dynamics"
+      ],
+      "attributes": {
+        "source": "image"
+      },
+      "eti_message": {
+        "timestamp": "2017-10-10T00:00:00",
+        "recommendation": "Maintain structural fire safety",
+        "combat_element": "Fire Safety",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "While the image analysis is detailed, it lacks confirmation from a secondary content source.",
+        "uoi_value": 0.15,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "california_wildfires__10_10_2017__917822563807399936_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/california_wildfires__10_10_2017__917822563807399936_0.jpg",
+          "description": "A close-up, low-angle shot of a rectangular structure, possibly a crate or a section of a wall, engulfed in flames against a dark, reddish-orange background. The structure is composed of a grid of rectangular panels or bricks, which are glowing intensely from the heat. A large, bright yellow and orange flame rises from the top edge of the structure, flickering upward. The entire scene is bathed in a monochromatic, fiery red-orange light, creating a high-contrast, intense atmosphere. The texture of the structure appears rough and possibly metallic or masonry-like.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.95,
+        "sensitivity_conf": 0.8,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: injuries to a child, face visible",
+        "warning_tags": [
+          "Child Abuse",
+          "Injury"
+        ]
+      },
+      "day": "10",
+      "month": "10",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-10-10T00:00:00",
+      "date": "10/10/2017"
+    },
+    {
+      "node": "01m0h8zqzbq2e1fh35zqz1e2kr_0004",
+      "label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "category": "Fire Dynamics",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m26bjvn2k70ngznd9zjn0swt_0001",
+      "label": "Flames → rise from → structure",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M26BJVN2K70NGZND9ZJN0SWT",
+      "cluster_id": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "record_id": "01M0H8ZQZBE7RNYCPYSR1S518H",
+      "category": "Fire Dynamics",
+      "subject": "Flames",
+      "predicate": "rise from",
+      "object": "structure",
+      "confidence": 0.85,
+      "justification": "From the image description: 'A large, bright yellow and orange flame rises from the top edge of the structure'.",
+      "msg_text": "Tuesday's Morning Email: Take A Look At The Wildfires Devastating California Wine Country https://t.co/usBx4boGjs https://t.co/1aebmF43Lz",
+      "modality": "text+image",
+      "event_name": "california_wildfires",
+      "triplet_categories": [
+        "Fire Dynamics"
+      ],
+      "relationship_category": [
+        "Fire"
+      ],
+      "cluster_categories": [
+        "Environmental Destruction",
+        "Fire",
+        "Structural Damage",
+        "Fire Dynamics"
+      ],
+      "attributes": {
+        "source": "image"
+      },
+      "eti_message": {
+        "timestamp": "2017-10-10T00:00:00",
+        "recommendation": "Assess vertical fire spread",
+        "combat_element": "Fire Dynamics",
+        "source": "text, image",
+        "taxonomy": "inconsistent",
+        "justification": "Vision model does not confirm if this flame spread is typical or extraordinary.",
+        "uoi_value": 0.15,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "california_wildfires__10_10_2017__917822563807399936_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/california_wildfires__10_10_2017__917822563807399936_0.jpg",
+          "description": "A close-up, low-angle shot of a rectangular structure, possibly a crate or a section of a wall, engulfed in flames against a dark, reddish-orange background. The structure is composed of a grid of rectangular panels or bricks, which are glowing intensely from the heat. A large, bright yellow and orange flame rises from the top edge of the structure, flickering upward. The entire scene is bathed in a monochromatic, fiery red-orange light, creating a high-contrast, intense atmosphere. The texture of the structure appears rough and possibly metallic or masonry-like.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.85,
+        "sensitivity_conf": 0.74,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: mutilated remains in frame",
+        "warning_tags": [
+          "Gore",
+          "Mutilation"
+        ]
+      },
+      "day": "10",
+      "month": "10",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-10-10T00:00:00",
+      "date": "10/10/2017"
+    },
+    {
+      "node": "01m0h8zr9ge4ymdwdyt09afk3w_0001",
+      "label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "category": "Natural Disaster",
+      "misc": false,
+      "triplet_count": 2
+    },
+    {
+      "node": "01m267gd1es0qycepqc1kdv70f_0001",
+      "label": "#Harvey → causes → destruction in #Bayside",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GD1ES0QYCEPQC1KDV70F",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0R",
+      "category": "Natural Disaster",
+      "subject": "#Harvey",
+      "predicate": "causes",
+      "object": "destruction in #Bayside",
+      "confidence": 0.9,
+      "justification": "Stated directly in the text: 'Photos show destruction in #Bayside after hurricane #Harvey.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Natural Disaster"
+      ],
+      "relationship_category": [
+        "Natural"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {},
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Monitor hurricane-affected areas.",
+        "combat_element": "Disaster Response Team",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "The text directly states hurricane #Harvey caused destruction.",
+        "uoi_value": 0.1,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_0.jpg",
+          "description": "An aerial view of a rural, coastal landscape following a storm. In the foreground, a large, single-story house has significant roof damage, with a section of the roof missing, exposing the interior structure. Debris is scattered across the yard. Nearby, there is a red barn and a smaller white house, both appearing largely intact. The surrounding landscape is flat, with patches of standing water and muddy ground, suggesting flooding. Vegetation appears sparse and damaged, with many trees looking stripped of leaves. In the background, there is a body of water, likely a bay or marshland, under an overcast, gray sky. The lighting is diffuse and flat, characteristic of a cloudy day.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.65,
+        "sensitivity_conf": 0.78,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "audio: caller describes self-harm in progress",
+        "warning_tags": [
+          "Suicide"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m267gwycy4sdsw5kq36pm32m_0001",
+      "label": "Hurricane Harvey → caused destruction in → Bayside",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GWYCY4SDSW5KQ36PM32M",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0V",
+      "category": "Natural Disaster",
+      "subject": "Hurricane Harvey",
+      "predicate": "caused destruction in",
+      "object": "Bayside",
+      "confidence": 0.95,
+      "justification": "Direct mention in the message: 'RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Natural Disaster"
+      ],
+      "relationship_category": [
+        "Natural"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "source": "text",
+        "location": "Texas"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Increase emergency response in affected regions",
+        "combat_element": "Emergency Services",
+        "source": "text, image",
+        "taxonomy": "questionable",
+        "justification": "The tweet directly mentions Bayside and associated destruction with Hurricane Harvey, which is supported by the image analysis.",
+        "uoi_value": 0.05,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_3.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_3.jpg",
+          "description": "An aerial, high-angle shot shows a flooded residential area with a road crossing a body of water. In the foreground, a culvert system allows water to flow forcefully from a larger, turbulent body of water on the left into a flooded, swampy area on the right, which contains trees and vegetation. The water is murky and grey. Several houses are visible in the background, some appearing to have sustained damage, with debris scattered around. The ground is saturated and muddy, with large patches of standing water throughout the landscape. The sky is overcast and grey, suggesting a storm or post-storm environment.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.7,
+        "sensitivity_conf": 0.82,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: a covered body at a recovery site",
+        "warning_tags": [
+          "Death"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m0h8zr9ge4ymdwdyt09afk3w_0002",
+      "label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "category": "Structural Damage",
+      "misc": false,
+      "triplet_count": 4
+    },
+    {
+      "node": "01m267gd1es0qycepqc1kdv70g_0001",
+      "label": "Large house → has → roof damage",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GD1ES0QYCEPQC1KDV70G",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0R",
+      "category": "Structural Damage",
+      "subject": "Large house",
+      "predicate": "has",
+      "object": "roof damage",
+      "confidence": 0.82,
+      "justification": "Vision model description states: 'a large, single-story house has significant roof damage, with a section of the roof missing.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Structural Damage"
+      ],
+      "relationship_category": [
+        "Structural"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "location": "rural coastal landscape"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Assess structural integrity of damaged buildings.",
+        "combat_element": "Structural Engineering Team",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "The image analysis directly indicates roof damage.",
+        "uoi_value": 0.18,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_0.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_0.jpg",
+          "description": "An aerial view of a rural, coastal landscape following a storm. In the foreground, a large, single-story house has significant roof damage, with a section of the roof missing, exposing the interior structure. Debris is scattered across the yard. Nearby, there is a red barn and a smaller white house, both appearing largely intact. The surrounding landscape is flat, with patches of standing water and muddy ground, suggesting flooding. Vegetation appears sparse and damaged, with many trees looking stripped of leaves. In the background, there is a body of water, likely a bay or marshland, under an overcast, gray sky. The lighting is diffuse and flat, characteristic of a cloudy day.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.35,
+        "sensitivity_conf": 0.8,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: treated injury, bandaged",
+        "warning_tags": [
+          "Injury"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m267gjsv8y0zyr3gjbv529z8_0001",
+      "label": "Blue, two-story house → has → roof damage",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GJSV8Y0ZYR3GJBV529Z8",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0S",
+      "category": "Structural Damage",
+      "subject": "Blue, two-story house",
+      "predicate": "has",
+      "object": "roof damage",
+      "confidence": 0.82,
+      "justification": "Based on the vision analysis: 'A blue, two-story house with significant roof damage, including missing shingles and exposed structural elements.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Structural Damage"
+      ],
+      "relationship_category": [
+        "Structural"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "location": "coastal",
+        "damage_level": "significant",
+        "source": "image"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Conduct repair assessment",
+        "combat_element": "Maintenance and Repair Unit",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "Potential mismatch between text generic damage claim and image depicting specific house damage.",
+        "uoi_value": 0.18,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_1.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_1.jpg",
+          "description": "An aerial view shows a coastal landscape featuring a blue, two-story house with significant roof damage, including missing shingles and exposed structural elements. The house is situated on an elevated bank overlooking a body of water, with a wooden pier extending into the water below. The area around the house is littered with debris, and the shoreline appears eroded. To the left of the blue house is a smaller, dark-colored building with a damaged roof. In the background, there is a rural landscape with a dirt road, sparse vegetation, and a distant building. The lighting is overcast, suggesting a cloudy day, and the overall scene depicts significant structural damage consistent with a storm or natural disaster.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.3,
+        "sensitivity_conf": 0.82,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: a minor visible injury, no blood",
+        "warning_tags": [
+          "Injury"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m267grkbz47qj8pwm26f2e4a_0001",
+      "label": "Several houses → show → signs of structural damage",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GRKBZ47QJ8PWM26F2E4A",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0T",
+      "category": "Structural Damage",
+      "subject": "Several houses",
+      "predicate": "show",
+      "object": "signs of structural damage",
+      "confidence": 0.82,
+      "justification": "Image analysis notes: 'Several houses are visible, some showing signs of structural damage, including missing roof shingles and debris-covered yards.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Structural Damage"
+      ],
+      "relationship_category": [
+        "Structural"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "roof_condition": "missing shingles",
+        "debris": "covered yards"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Initiate structural assessments.",
+        "combat_element": "Architecture and Civil Engineering",
+        "source": "text, image",
+        "taxonomy": "questionable",
+        "justification": "Reported by vision model.",
+        "uoi_value": 0.18,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "description": "An aerial view of a residential area after a storm. The landscape is characterized by flooded, muddy ground and scattered debris. Several houses are visible, some showing signs of structural damage, including missing roof shingles and debris-covered yards. A large, light-colored house in the center has a partially damaged roof. To the right, another house shows significant roof damage and debris accumulation. The surrounding area includes patches of green grass, trees that appear wind-damaged, and standing water. In the background, there is a body of water and a levee or road structure. The sky is overcast, and the lighting is diffuse and dim, suggesting a rainy or post-storm environment. There is a slight blur, likely from the camera lens or rain.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.4,
+        "sensitivity_conf": 0.83,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: a bleeding injury at a distance",
+        "warning_tags": [
+          "Injury",
+          "Blood"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m267gwycy4sdsw5kq36pm32p_0001",
+      "label": "Several houses → appeared to have sustained → damage",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GWYCY4SDSW5KQ36PM32P",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0V",
+      "category": "Structural Damage",
+      "subject": "Several houses",
+      "predicate": "appeared to have sustained",
+      "object": "damage",
+      "confidence": 0.82,
+      "justification": "Image analysis mentions 'houses ... appearing to have sustained damage, with debris scattered around.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Structural Damage"
+      ],
+      "relationship_category": [
+        "Structural"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "source": "image"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Conduct structural assessments and prioritize repairs for safety",
+        "combat_element": "Civil Engineering",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "Image analysis indicates observable physical damage to structures.",
+        "uoi_value": 0.18,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_3.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_3.jpg",
+          "description": "An aerial, high-angle shot shows a flooded residential area with a road crossing a body of water. In the foreground, a culvert system allows water to flow forcefully from a larger, turbulent body of water on the left into a flooded, swampy area on the right, which contains trees and vegetation. The water is murky and grey. Several houses are visible in the background, some appearing to have sustained damage, with debris scattered around. The ground is saturated and muddy, with large patches of standing water throughout the landscape. The sky is overcast and grey, suggesting a storm or post-storm environment.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.45,
+        "sensitivity_conf": 0.79,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: visible blood on a person being helped",
+        "warning_tags": [
+          "Blood",
+          "Injury"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m0h8zr9ge4ymdwdyt09afk3w_0003",
+      "label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "category": "Destruction",
+      "misc": false,
+      "triplet_count": 2
+    },
+    {
+      "node": "01m267gjsv8y0zyr3gjbv529z7_0001",
+      "label": "Photos → show → destruction in #Bayside",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GJSV8Y0ZYR3GJBV529Z7",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0S",
+      "category": "Destruction",
+      "subject": "Photos",
+      "predicate": "show",
+      "object": "destruction in #Bayside",
+      "confidence": 0.95,
+      "justification": "Quoted directly from the message text: 'Photos show destruction in #Bayside after hurricane #Harvey.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Destruction"
+      ],
+      "relationship_category": [
+        "Destruction"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "location": "Bayside",
+        "cause": "hurricane #Harvey",
+        "source": "text"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Increase surveillance and aid distribution",
+        "combat_element": "Structural Damage Assessment Team",
+        "source": "text, image",
+        "taxonomy": "inconsistent",
+        "justification": "Photos claim destruction in Bayside which may not align perfectly with the image description of a particular house.",
+        "uoi_value": 0.05,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_1.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_1.jpg",
+          "description": "An aerial view shows a coastal landscape featuring a blue, two-story house with significant roof damage, including missing shingles and exposed structural elements. The house is situated on an elevated bank overlooking a body of water, with a wooden pier extending into the water below. The area around the house is littered with debris, and the shoreline appears eroded. To the left of the blue house is a smaller, dark-colored building with a damaged roof. In the background, there is a rural landscape with a dirt road, sparse vegetation, and a distant building. The lighting is overcast, suggesting a cloudy day, and the overall scene depicts significant structural damage consistent with a storm or natural disaster.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.6,
+        "sensitivity_conf": 0.8,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: untreated injuries in a neglected setting",
+        "warning_tags": [
+          "Injury",
+          "Neglect"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m267grkbz47qj8pwm26f2e48_0001",
+      "label": "Photos → show destruction in → Bayside",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GRKBZ47QJ8PWM26F2E48",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0T",
+      "category": "Destruction",
+      "subject": "Photos",
+      "predicate": "show destruction in",
+      "object": "Bayside",
+      "confidence": 0.95,
+      "justification": "Record text states: 'Photos show destruction in #Bayside after hurricane #Harvey.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Destruction"
+      ],
+      "relationship_category": [
+        "Destruction"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "location": "Texas",
+        "hashtag": "#Harvey"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Deploy emergency response teams.",
+        "combat_element": "Emergency Management",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "The text directly states the situation.",
+        "uoi_value": 0.05,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "description": "An aerial view of a residential area after a storm. The landscape is characterized by flooded, muddy ground and scattered debris. Several houses are visible, some showing signs of structural damage, including missing roof shingles and debris-covered yards. A large, light-colored house in the center has a partially damaged roof. To the right, another house shows significant roof damage and debris accumulation. The surrounding area includes patches of green grass, trees that appear wind-damaged, and standing water. In the background, there is a body of water and a levee or road structure. The sky is overcast, and the lighting is diffuse and dim, suggesting a rainy or post-storm environment. There is a slight blur, likely from the camera lens or rain.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.55,
+        "sensitivity_conf": 0.77,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: burns and bleeding, mid-frame",
+        "warning_tags": [
+          "Blood",
+          "Burns"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m0h8zr9ge4ymdwdyt09afk3w_0004",
+      "label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "category": "Debris",
+      "misc": false,
+      "triplet_count": 2
+    },
+    {
+      "node": "01m267gjsv8y0zyr3gjbv529z9_0001",
+      "label": "Debris → is scattered around → coastal house",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GJSV8Y0ZYR3GJBV529Z9",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0S",
+      "category": "Debris",
+      "subject": "Debris",
+      "predicate": "is scattered around",
+      "object": "coastal house",
+      "confidence": 0.84,
+      "justification": "Reported by the vision description: 'The area around the house is littered with debris.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Debris"
+      ],
+      "relationship_category": [
+        "Debris"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "location": "shoreline",
+        "source": "image"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Clear debris",
+        "combat_element": "Environmental Clean-up Crew",
+        "source": "text, image",
+        "taxonomy": "questionable",
+        "justification": "House debris does not conclusively align with text mentioning broader 'destruction'.",
+        "uoi_value": 0.16,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_1.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_1.jpg",
+          "description": "An aerial view shows a coastal landscape featuring a blue, two-story house with significant roof damage, including missing shingles and exposed structural elements. The house is situated on an elevated bank overlooking a body of water, with a wooden pier extending into the water below. The area around the house is littered with debris, and the shoreline appears eroded. To the left of the blue house is a smaller, dark-colored building with a damaged roof. In the background, there is a rural landscape with a dirt road, sparse vegetation, and a distant building. The lighting is overcast, suggesting a cloudy day, and the overall scene depicts significant structural damage consistent with a storm or natural disaster.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.2,
+        "sensitivity_conf": 0.84,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: visible distress among bystanders",
+        "warning_tags": [
+          "Distress",
+          "Property Damage"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m267grkbz47qj8pwm26f2e49_0001",
+      "label": "Aerial view → shows → flooded, muddy ground and scattered debris",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GRKBZ47QJ8PWM26F2E49",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0T",
+      "category": "Debris",
+      "subject": "Aerial view",
+      "predicate": "shows",
+      "object": "flooded, muddy ground and scattered debris",
+      "confidence": 0.85,
+      "justification": "Image analysis reports: 'The landscape is characterized by flooded, muddy ground and scattered debris.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Flooding",
+        "Debris"
+      ],
+      "relationship_category": [
+        "Flood",
+        "Debris"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "environment": "Post-storm",
+        "setting": "residential area",
+        "specific_location": "Bayside"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Conduct clean up operations.",
+        "combat_element": "Local Authorities",
+        "source": "text, image",
+        "taxonomy": "inconsistent",
+        "justification": "Direct observation from the model's image analysis.",
+        "uoi_value": 0.15,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "description": "An aerial view of a residential area after a storm. The landscape is characterized by flooded, muddy ground and scattered debris. Several houses are visible, some showing signs of structural damage, including missing roof shingles and debris-covered yards. A large, light-colored house in the center has a partially damaged roof. To the right, another house shows significant roof damage and debris accumulation. The surrounding area includes patches of green grass, trees that appear wind-damaged, and standing water. In the background, there is a body of water and a levee or road structure. The sky is overcast, and the lighting is diffuse and dim, suggesting a rainy or post-storm environment. There is a slight blur, likely from the camera lens or rain.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.75,
+        "sensitivity_conf": 0.76,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: an uncovered body, blood visible",
+        "warning_tags": [
+          "Death",
+          "Blood"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m0h8zr9ge4ymdwdyt09afk3w_0005",
+      "label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "category": "Natural Disaster Damage",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m267gjsv8y0zyr3gjbv529za_0001",
+      "label": "Hurricane #Harvey → caused → structural damage",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GJSV8Y0ZYR3GJBV529ZA",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0S",
+      "category": "Natural Disaster Damage",
+      "subject": "Hurricane #Harvey",
+      "predicate": "caused",
+      "object": "structural damage",
+      "confidence": 0.75,
+      "justification": "Combined deduction from text and image: text mentions #Harvey as the cause; image shows storm-consistent damage.",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Natural Disaster Damage"
+      ],
+      "relationship_category": [
+        "Natural"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "source": "text+image"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Intensify emergency response",
+        "combat_element": "Disaster Response Team",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "The text attributes destruction to #Harvey whereas the image independently confirms storm damage without implicitly naming #Harvey.",
+        "uoi_value": 0.25,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_1.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_1.jpg",
+          "description": "An aerial view shows a coastal landscape featuring a blue, two-story house with significant roof damage, including missing shingles and exposed structural elements. The house is situated on an elevated bank overlooking a body of water, with a wooden pier extending into the water below. The area around the house is littered with debris, and the shoreline appears eroded. To the left of the blue house is a smaller, dark-colored building with a damaged roof. In the background, there is a rural landscape with a dirt road, sparse vegetation, and a distant building. The lighting is overcast, suggesting a cloudy day, and the overall scene depicts significant structural damage consistent with a storm or natural disaster.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.5,
+        "sensitivity_conf": 0.81,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: burn injuries visible on a survivor",
+        "warning_tags": [
+          "Burns"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m0h8zr9ge4ymdwdyt09afk3w_0006",
+      "label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "category": "Flooding",
+      "misc": false,
+      "triplet_count": 2
+    },
+    {
+      "node": "01m267grkbz47qj8pwm26f2e49_0002",
+      "label": "Aerial view → shows → flooded, muddy ground and scattered debris",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GRKBZ47QJ8PWM26F2E49",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0T",
+      "category": "Flooding",
+      "subject": "Aerial view",
+      "predicate": "shows",
+      "object": "flooded, muddy ground and scattered debris",
+      "confidence": 0.85,
+      "justification": "Image analysis reports: 'The landscape is characterized by flooded, muddy ground and scattered debris.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Flooding",
+        "Debris"
+      ],
+      "relationship_category": [
+        "Flood",
+        "Debris"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "environment": "Post-storm",
+        "setting": "residential area",
+        "specific_location": "Bayside"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Conduct clean up operations.",
+        "combat_element": "Local Authorities",
+        "source": "text, image",
+        "taxonomy": "inconsistent",
+        "justification": "Direct observation from the model's image analysis.",
+        "uoi_value": 0.15,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "description": "An aerial view of a residential area after a storm. The landscape is characterized by flooded, muddy ground and scattered debris. Several houses are visible, some showing signs of structural damage, including missing roof shingles and debris-covered yards. A large, light-colored house in the center has a partially damaged roof. To the right, another house shows significant roof damage and debris accumulation. The surrounding area includes patches of green grass, trees that appear wind-damaged, and standing water. In the background, there is a body of water and a levee or road structure. The sky is overcast, and the lighting is diffuse and dim, suggesting a rainy or post-storm environment. There is a slight blur, likely from the camera lens or rain.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.75,
+        "sensitivity_conf": 0.76,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: an uncovered body, blood visible",
+        "warning_tags": [
+          "Death",
+          "Blood"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m267gwycy4sdsw5kq36pm32n_0001",
+      "label": "Water → is flowing from → a larger turbulent body into a swampy area",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GWYCY4SDSW5KQ36PM32N",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0V",
+      "category": "Flooding",
+      "subject": "Water",
+      "predicate": "is flowing from",
+      "object": "a larger turbulent body into a swampy area",
+      "confidence": 0.85,
+      "justification": "The image analysis describes a 'culvert system allows water to flow forcefully from a larger, turbulent body of water...into a flooded, swampy area.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Flooding"
+      ],
+      "relationship_category": [
+        "Flood"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "source": "image"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Monitor water levels and reinforce levees",
+        "combat_element": "Environmental Monitoring",
+        "source": "text, image",
+        "taxonomy": "inconsistent",
+        "justification": "The image analysis describes significant movement of water which is indicative of flooding conditions.",
+        "uoi_value": 0.15,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_3.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_3.jpg",
+          "description": "An aerial, high-angle shot shows a flooded residential area with a road crossing a body of water. In the foreground, a culvert system allows water to flow forcefully from a larger, turbulent body of water on the left into a flooded, swampy area on the right, which contains trees and vegetation. The water is murky and grey. Several houses are visible in the background, some appearing to have sustained damage, with debris scattered around. The ground is saturated and muddy, with large patches of standing water throughout the landscape. The sky is overcast and grey, suggesting a storm or post-storm environment.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.15,
+        "sensitivity_conf": 0.86,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: people displaced, no injury visible",
+        "warning_tags": [
+          "Distress"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "01m0h8zr9ge4ymdwdyt09afk3w_0007",
+      "label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy": "CLUSTER",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "category": "Weather",
+      "misc": false,
+      "triplet_count": 1
+    },
+    {
+      "node": "01m267grkbz47qj8pwm26f2e4b_0001",
+      "label": "Environmental setting → includes → overcast, diffuse lighting condition",
+      "hierarchy": "TRIPLET",
+      "triplet_id": "01M267GRKBZ47QJ8PWM26F2E4B",
+      "cluster_id": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "record_id": "01M0H8ZR9GMKCKT1SP30DFSQ0T",
+      "category": "Weather",
+      "subject": "Environmental setting",
+      "predicate": "includes",
+      "object": "overcast, diffuse lighting condition",
+      "confidence": 0.85,
+      "justification": "The vision model describes a 'dim, overcast sky and diffuse lighting.'",
+      "msg_text": "RT @worldonalert: #Texas: Photos show destruction in #Bayside after hurricane #Harvey. https://t.co/YO4oqLPZnm https://t.co/cvTatve6zi",
+      "modality": "text+image",
+      "event_name": "hurricane_harvey",
+      "triplet_categories": [
+        "Weather"
+      ],
+      "relationship_category": [
+        "Weather"
+      ],
+      "cluster_categories": [
+        "Natural Disaster",
+        "Structural Damage",
+        "Destruction",
+        "Debris",
+        "Natural Disaster Damage",
+        "Flooding",
+        "Weather"
+      ],
+      "attributes": {
+        "weather": "post-storm environment",
+        "sky": "overcast"
+      },
+      "eti_message": {
+        "timestamp": "2017-08-27T00:00:00",
+        "recommendation": "Monitor weather conditions.",
+        "combat_element": "Meteorology",
+        "source": "text, image",
+        "taxonomy": "inaccurate",
+        "justification": "Based on lighting conditions in the image.",
+        "uoi_value": 0.15,
+        "uoi_assessment": "low"
+      },
+      "media": [
+        {
+          "channel": "image",
+          "media_type": "image/jpeg",
+          "filename": "hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "path": "resources/test_files/datasets/Crisis_MMD_v2.0_08_07_2026/images/hurricane_harvey__27_8_2017__901692349289566210_2.jpg",
+          "description": "An aerial view of a residential area after a storm. The landscape is characterized by flooded, muddy ground and scattered debris. Several houses are visible, some showing signs of structural damage, including missing roof shingles and debris-covered yards. A large, light-colored house in the center has a partially damaged roof. To the right, another house shows significant roof damage and debris accumulation. The surrounding area includes patches of green grass, trees that appear wind-damaged, and standing water. In the background, there is a body of water and a levee or road structure. The sky is overcast, and the lighting is diffuse and dim, suggesting a rainy or post-storm environment. There is a slight blur, likely from the camera lens or rain.",
+          "conf": "0.95",
+          "model": "gemini-3.1-flash-lite"
+        }
+      ],
+      "handling": {
+        "sensitivity": 0.1,
+        "sensitivity_conf": 0.88,
+        "sensitivity_model": "SIMULATED FIXTURE",
+        "content_blur": true,
+        "filter_reason": "image: damaged property at a distance",
+        "warning_tags": [
+          "Property Damage"
+        ]
+      },
+      "day": "27",
+      "month": "08",
+      "year": "2017",
+      "hour": "00",
+      "minute": "00",
+      "second": "00",
+      "timezone": "UTC",
+      "timestamp": "2017-08-27T00:00:00",
+      "date": "27/08/2017"
+    },
+    {
+      "node": "debris_h000",
+      "label": "Debris",
+      "hierarchy": "H000",
+      "category": "Debris",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "destruction_h000",
+      "label": "Destruction",
+      "hierarchy": "H000",
+      "category": "Destruction",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "environmental_destruction_h000",
+      "label": "Environmental Destruction",
+      "hierarchy": "H000",
+      "category": "Environmental Destruction",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "environmental_threat_h000",
+      "label": "Environmental Threat",
+      "hierarchy": "H000",
+      "category": "Environmental Threat",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "event_cancellation_h000",
+      "label": "Event Cancellation",
+      "hierarchy": "H000",
+      "category": "Event Cancellation",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "fire_h000",
+      "label": "Fire",
+      "hierarchy": "H000",
+      "category": "Fire",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "fire_dynamics_h000",
+      "label": "Fire Dynamics",
+      "hierarchy": "H000",
+      "category": "Fire Dynamics",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "flooding_h000",
+      "label": "Flooding",
+      "hierarchy": "H000",
+      "category": "Flooding",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "natural_disaster_h000",
+      "label": "Natural Disaster",
+      "hierarchy": "H000",
+      "category": "Natural Disaster",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "natural_disaster_damage_h000",
+      "label": "Natural Disaster Damage",
+      "hierarchy": "H000",
+      "category": "Natural Disaster Damage",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "public_safety_h000",
+      "label": "Public Safety",
+      "hierarchy": "H000",
+      "category": "Public Safety",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "structural_damage_h000",
+      "label": "Structural Damage",
+      "hierarchy": "H000",
+      "category": "Structural Damage",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "weather_h000",
+      "label": "Weather",
+      "hierarchy": "H000",
+      "category": "Weather",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "wildfire_location_h000",
+      "label": "Wildfire Location",
+      "hierarchy": "H000",
+      "category": "Wildfire Location",
+      "tier": 0,
+      "misc": false
+    },
+    {
+      "node": "debris_h001",
+      "label": "Debris",
+      "hierarchy": "H001",
+      "category": "Debris",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "destruction_h001",
+      "label": "Destruction",
+      "hierarchy": "H001",
+      "category": "Destruction",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "environment_and_sustainability_h001",
+      "label": "Environment and Sustainability",
+      "hierarchy": "H001",
+      "category": "Environment and Sustainability",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "event_h001",
+      "label": "Event",
+      "hierarchy": "H001",
+      "category": "Event",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "fire_h001",
+      "label": "Fire",
+      "hierarchy": "H001",
+      "category": "Fire",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "flood_h001",
+      "label": "Flood",
+      "hierarchy": "H001",
+      "category": "Flood",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "natural_h001",
+      "label": "Natural",
+      "hierarchy": "H001",
+      "category": "Natural",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "public_engagement_h001",
+      "label": "Public Engagement",
+      "hierarchy": "H001",
+      "category": "Public Engagement",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "structural_h001",
+      "label": "Structural",
+      "hierarchy": "H001",
+      "category": "Structural",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "weather_h001",
+      "label": "Weather",
+      "hierarchy": "H001",
+      "category": "Weather",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "wildfire_h001",
+      "label": "Wildfire",
+      "hierarchy": "H001",
+      "category": "Wildfire",
+      "tier": 1,
+      "misc": false
+    },
+    {
+      "node": "debris_h002",
+      "label": "Debris",
+      "hierarchy": "H002",
+      "category": "Debris",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "destruction_h002",
+      "label": "Destruction",
+      "hierarchy": "H002",
+      "category": "Destruction",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "environment_h002",
+      "label": "Environment",
+      "hierarchy": "H002",
+      "category": "Environment",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "environment_and_nature_h002",
+      "label": "Environment and Nature",
+      "hierarchy": "H002",
+      "category": "Environment and Nature",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "events_and_gatherings_h002",
+      "label": "Events and Gatherings",
+      "hierarchy": "H002",
+      "category": "Events and Gatherings",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "fire_h002",
+      "label": "Fire",
+      "hierarchy": "H002",
+      "category": "Fire",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "natural_h002",
+      "label": "Natural",
+      "hierarchy": "H002",
+      "category": "Natural",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "population_and_societal_dynamics_h002",
+      "label": "Population and Societal Dynamics",
+      "hierarchy": "H002",
+      "category": "Population and Societal Dynamics",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "symbolic_aspects_h002",
+      "label": "Symbolic Aspects",
+      "hierarchy": "H002",
+      "category": "Symbolic Aspects",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "weather_and_forecasting_h002",
+      "label": "Weather and Forecasting",
+      "hierarchy": "H002",
+      "category": "Weather and Forecasting",
+      "tier": 2,
+      "misc": false
+    },
+    {
+      "node": "debris_h003",
+      "label": "Debris",
+      "hierarchy": "H003",
+      "category": "Debris",
+      "tier": 3,
+      "misc": false
+    },
+    {
+      "node": "environment_and_nature_h003",
+      "label": "Environment and Nature",
+      "hierarchy": "H003",
+      "category": "Environment and Nature",
+      "tier": 3,
+      "misc": false
+    },
+    {
+      "node": "events_and_gatherings_h003",
+      "label": "Events and Gatherings",
+      "hierarchy": "H003",
+      "category": "Events and Gatherings",
+      "tier": 3,
+      "misc": false
+    },
+    {
+      "node": "natural_disasters_and_emergencies_h003",
+      "label": "Natural Disasters and Emergencies",
+      "hierarchy": "H003",
+      "category": "Natural Disasters and Emergencies",
+      "tier": 3,
+      "misc": false
+    },
+    {
+      "node": "natural_phenomena_h003",
+      "label": "Natural Phenomena",
+      "hierarchy": "H003",
+      "category": "Natural Phenomena",
+      "tier": 3,
+      "misc": false
+    },
+    {
+      "node": "population_and_society_h003",
+      "label": "Population and Society",
+      "hierarchy": "H003",
+      "category": "Population and Society",
+      "tier": 3,
+      "misc": false
+    },
+    {
+      "node": "visual_art_h003",
+      "label": "Visual Art",
+      "hierarchy": "H003",
+      "category": "Visual Art",
+      "tier": 3,
+      "misc": false
+    },
+    {
+      "node": "damage_h004",
+      "label": "Damage",
+      "hierarchy": "H004",
+      "category": "Damage",
+      "tier": 4,
+      "misc": false
+    },
+    {
+      "node": "environment_and_nature_h004",
+      "label": "Environment and Nature",
+      "hierarchy": "H004",
+      "category": "Environment and Nature",
+      "tier": 4,
+      "misc": false
+    },
+    {
+      "node": "events_and_gatherings_h004",
+      "label": "Events and Gatherings",
+      "hierarchy": "H004",
+      "category": "Events and Gatherings",
+      "tier": 4,
+      "misc": false
+    },
+    {
+      "node": "media_and_content_h004",
+      "label": "Media and Content",
+      "hierarchy": "H004",
+      "category": "Media and Content",
+      "tier": 4,
+      "misc": false
+    },
+    {
+      "node": "natural_disasters_and_emergencies_h004",
+      "label": "Natural Disasters and Emergencies",
+      "hierarchy": "H004",
+      "category": "Natural Disasters and Emergencies",
+      "tier": 4,
+      "misc": false
+    },
+    {
+      "node": "natural_phenomena_h004",
+      "label": "Natural Phenomena",
+      "hierarchy": "H004",
+      "category": "Natural Phenomena",
+      "tier": 4,
+      "misc": false
+    },
+    {
+      "node": "population_and_society_h004",
+      "label": "Population and Society",
+      "hierarchy": "H004",
+      "category": "Population and Society",
+      "tier": 4,
+      "misc": false
+    },
+    {
+      "node": "damage_h005",
+      "label": "Damage",
+      "hierarchy": "H005",
+      "category": "Damage",
+      "tier": 5,
+      "misc": false
+    },
+    {
+      "node": "demographic_and_population_h005",
+      "label": "Demographic and Population",
+      "hierarchy": "H005",
+      "category": "Demographic and Population",
+      "tier": 5,
+      "misc": false
+    },
+    {
+      "node": "environment_h005",
+      "label": "Environment",
+      "hierarchy": "H005",
+      "category": "Environment",
+      "tier": 5,
+      "misc": false
+    },
+    {
+      "node": "events_and_gatherings_h005",
+      "label": "Events and Gatherings",
+      "hierarchy": "H005",
+      "category": "Events and Gatherings",
+      "tier": 5,
+      "misc": false
+    },
+    {
+      "node": "media_and_content_h005",
+      "label": "Media and Content",
+      "hierarchy": "H005",
+      "category": "Media and Content",
+      "tier": 5,
+      "misc": false
+    },
+    {
+      "node": "natural_disasters_and_emergencies_h005",
+      "label": "Natural Disasters and Emergencies",
+      "hierarchy": "H005",
+      "category": "Natural Disasters and Emergencies",
+      "tier": 5,
+      "misc": false
+    },
+    {
+      "node": "crisis_and_disasters_h006",
+      "label": "Crisis and Disasters",
+      "hierarchy": "H006",
+      "category": "Crisis and Disasters",
+      "tier": 6,
+      "misc": false
+    },
+    {
+      "node": "environment_h006",
+      "label": "Environment",
+      "hierarchy": "H006",
+      "category": "Environment",
+      "tier": 6,
+      "misc": false
+    },
+    {
+      "node": "events_and_gatherings_h006",
+      "label": "Events and Gatherings",
+      "hierarchy": "H006",
+      "category": "Events and Gatherings",
+      "tier": 6,
+      "misc": false
+    },
+    {
+      "node": "media_and_communications_h006",
+      "label": "Media and Communications",
+      "hierarchy": "H006",
+      "category": "Media and Communications",
+      "tier": 6,
+      "misc": false
+    },
+    {
+      "node": "social_and_demographics_h006",
+      "label": "Social and Demographics",
+      "hierarchy": "H006",
+      "category": "Social and Demographics",
+      "tier": 6,
+      "misc": false
+    },
+    {
+      "node": "activities_h007",
+      "label": "Activities",
+      "hierarchy": "H007",
+      "category": "Activities",
+      "tier": 7,
+      "misc": false
+    },
+    {
+      "node": "crisis_and_disasters_h007",
+      "label": "Crisis and Disasters",
+      "hierarchy": "H007",
+      "category": "Crisis and Disasters",
+      "tier": 7,
+      "misc": false
+    },
+    {
+      "node": "environment_h007",
+      "label": "Environment",
+      "hierarchy": "H007",
+      "category": "Environment",
+      "tier": 7,
+      "misc": false
+    },
+    {
+      "node": "media_and_communications_h007",
+      "label": "Media and Communications",
+      "hierarchy": "H007",
+      "category": "Media and Communications",
+      "tier": 7,
+      "misc": false
+    },
+    {
+      "node": "social_and_demographics_h007",
+      "label": "Social and Demographics",
+      "hierarchy": "H007",
+      "category": "Social and Demographics",
+      "tier": 7,
+      "misc": false
+    },
+    {
+      "node": "activity_coordination_h008",
+      "label": "Activity Coordination",
+      "hierarchy": "H008",
+      "category": "Activity Coordination",
+      "tier": 8,
+      "misc": false
+    },
+    {
+      "node": "crisis_and_disasters_h008",
+      "label": "Crisis and Disasters",
+      "hierarchy": "H008",
+      "category": "Crisis and Disasters",
+      "tier": 8,
+      "misc": false
+    },
+    {
+      "node": "environment_h008",
+      "label": "Environment",
+      "hierarchy": "H008",
+      "category": "Environment",
+      "tier": 8,
+      "misc": false
+    },
+    {
+      "node": "media_and_communications_h008",
+      "label": "Media and Communications",
+      "hierarchy": "H008",
+      "category": "Media and Communications",
+      "tier": 8,
+      "misc": false
+    },
+    {
+      "node": "social_and_demographics_h008",
+      "label": "Social and Demographics",
+      "hierarchy": "H008",
+      "category": "Social and Demographics",
+      "tier": 8,
+      "misc": false
+    }
+  ],
+  "edges": [
+    {
+      "legend_key_id": "01m0h8zqz63cre3vbhw0yzbhxh_0001_to_event_cancellation",
+      "source": "01m0h8zqz63cre3vbhw0yzbhxh_0001",
+      "target": "event_cancellation_h000",
+      "source_label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "target_label": "Event Cancellation",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m26bdkvb8nme84khpcqzrmqs_0001_to_01m0h8zqz63cre3vbhw0yzbhxh",
+      "source": "01m26bdkvb8nme84khpcqzrmqs_0001",
+      "target": "01m0h8zqz63cre3vbhw0yzbhxh_0001",
+      "source_label": "California schools → call off → all sports",
+      "target_label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "call off"
+    },
+    {
+      "legend_key_id": "01m0h8zqz63cre3vbhw0yzbhxh_0002_to_wildfire_location",
+      "source": "01m0h8zqz63cre3vbhw0yzbhxh_0002",
+      "target": "wildfire_location_h000",
+      "source_label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "target_label": "Wildfire Location",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m26bdkvb8nme84khpcqzrmqt_0001_to_01m0h8zqz63cre3vbhw0yzbhxh",
+      "source": "01m26bdkvb8nme84khpcqzrmqt_0001",
+      "target": "01m0h8zqz63cre3vbhw0yzbhxh_0002",
+      "source_label": "Wildfire → burning in → hilly, semi-arid landscape",
+      "target_label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "burning in"
+    },
+    {
+      "legend_key_id": "01m0h8zqz63cre3vbhw0yzbhxh_0003_to_environmental_threat",
+      "source": "01m0h8zqz63cre3vbhw0yzbhxh_0003",
+      "target": "environmental_threat_h000",
+      "source_label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "target_label": "Environmental Threat",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m26bdkvb8nme84khpcqzrmqv_0001_to_01m0h8zqz63cre3vbhw0yzbhxh",
+      "source": "01m26bdkvb8nme84khpcqzrmqv_0001",
+      "target": "01m0h8zqz63cre3vbhw0yzbhxh_0003",
+      "source_label": "Wildfire smoke → poses a threat to → suburban residential area",
+      "target_label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "poses a threat to"
+    },
+    {
+      "legend_key_id": "01m0h8zqz63cre3vbhw0yzbhxh_0004_to_public_safety",
+      "source": "01m0h8zqz63cre3vbhw0yzbhxh_0004",
+      "target": "public_safety_h000",
+      "source_label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "target_label": "Public Safety",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m26bdkvb8nme84khpcqzrmqv_0002_to_01m0h8zqz63cre3vbhw0yzbhxh",
+      "source": "01m26bdkvb8nme84khpcqzrmqv_0002",
+      "target": "01m0h8zqz63cre3vbhw0yzbhxh_0004",
+      "source_label": "Wildfire smoke → poses a threat to → suburban residential area",
+      "target_label": "01M0H8ZQZ63CRE3VBHW0YZBHXH",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "poses a threat to"
+    },
+    {
+      "legend_key_id": "01m0h8zqzbq2e1fh35zqz1e2kr_0001_to_environmental_destruction",
+      "source": "01m0h8zqzbq2e1fh35zqz1e2kr_0001",
+      "target": "environmental_destruction_h000",
+      "source_label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "target_label": "Environmental Destruction",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m26bjvmq9c98q7b0rhmkm3y5_0001_to_01m0h8zqzbq2e1fh35zqz1e2kr",
+      "source": "01m26bjvmq9c98q7b0rhmkm3y5_0001",
+      "target": "01m0h8zqzbq2e1fh35zqz1e2kr_0001",
+      "source_label": "Wildfires → devastating → California Wine Country",
+      "target_label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "devastating"
+    },
+    {
+      "legend_key_id": "01m0h8zqzbq2e1fh35zqz1e2kr_0002_to_fire",
+      "source": "01m0h8zqzbq2e1fh35zqz1e2kr_0002",
+      "target": "fire_h000",
+      "source_label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "target_label": "Fire",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m26bjvn2k70ngznd9zjn0sws_0001_to_01m0h8zqzbq2e1fh35zqz1e2kr",
+      "source": "01m26bjvn2k70ngznd9zjn0sws_0001",
+      "target": "01m0h8zqzbq2e1fh35zqz1e2kr_0002",
+      "source_label": "Structure → is engulfed in → flames",
+      "target_label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "is engulfed in"
+    },
+    {
+      "legend_key_id": "01m0h8zqzbq2e1fh35zqz1e2kr_0003_to_structural_damage",
+      "source": "01m0h8zqzbq2e1fh35zqz1e2kr_0003",
+      "target": "structural_damage_h000",
+      "source_label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "target_label": "Structural Damage",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m26bjvn2k70ngznd9zjn0sws_0002_to_01m0h8zqzbq2e1fh35zqz1e2kr",
+      "source": "01m26bjvn2k70ngznd9zjn0sws_0002",
+      "target": "01m0h8zqzbq2e1fh35zqz1e2kr_0003",
+      "source_label": "Structure → is engulfed in → flames",
+      "target_label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "is engulfed in"
+    },
+    {
+      "legend_key_id": "01m0h8zqzbq2e1fh35zqz1e2kr_0004_to_fire_dynamics",
+      "source": "01m0h8zqzbq2e1fh35zqz1e2kr_0004",
+      "target": "fire_dynamics_h000",
+      "source_label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "target_label": "Fire Dynamics",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m26bjvn2k70ngznd9zjn0swt_0001_to_01m0h8zqzbq2e1fh35zqz1e2kr",
+      "source": "01m26bjvn2k70ngznd9zjn0swt_0001",
+      "target": "01m0h8zqzbq2e1fh35zqz1e2kr_0004",
+      "source_label": "Flames → rise from → structure",
+      "target_label": "01M0H8ZQZBQ2E1FH35ZQZ1E2KR",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "rise from"
+    },
+    {
+      "legend_key_id": "01m0h8zr9ge4ymdwdyt09afk3w_0001_to_natural_disaster",
+      "source": "01m0h8zr9ge4ymdwdyt09afk3w_0001",
+      "target": "natural_disaster_h000",
+      "source_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "target_label": "Natural Disaster",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m267gd1es0qycepqc1kdv70f_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267gd1es0qycepqc1kdv70f_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0001",
+      "source_label": "#Harvey → causes → destruction in #Bayside",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "causes"
+    },
+    {
+      "legend_key_id": "01m267gwycy4sdsw5kq36pm32m_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267gwycy4sdsw5kq36pm32m_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0001",
+      "source_label": "Hurricane Harvey → caused destruction in → Bayside",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "caused destruction in"
+    },
+    {
+      "legend_key_id": "01m0h8zr9ge4ymdwdyt09afk3w_0002_to_structural_damage",
+      "source": "01m0h8zr9ge4ymdwdyt09afk3w_0002",
+      "target": "structural_damage_h000",
+      "source_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "target_label": "Structural Damage",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m267gd1es0qycepqc1kdv70g_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267gd1es0qycepqc1kdv70g_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0002",
+      "source_label": "Large house → has → roof damage",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "has"
+    },
+    {
+      "legend_key_id": "01m267gjsv8y0zyr3gjbv529z8_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267gjsv8y0zyr3gjbv529z8_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0002",
+      "source_label": "Blue, two-story house → has → roof damage",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "has"
+    },
+    {
+      "legend_key_id": "01m267grkbz47qj8pwm26f2e4a_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267grkbz47qj8pwm26f2e4a_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0002",
+      "source_label": "Several houses → show → signs of structural damage",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "show"
+    },
+    {
+      "legend_key_id": "01m267gwycy4sdsw5kq36pm32p_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267gwycy4sdsw5kq36pm32p_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0002",
+      "source_label": "Several houses → appeared to have sustained → damage",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "appeared to have sustained"
+    },
+    {
+      "legend_key_id": "01m0h8zr9ge4ymdwdyt09afk3w_0003_to_destruction",
+      "source": "01m0h8zr9ge4ymdwdyt09afk3w_0003",
+      "target": "destruction_h000",
+      "source_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "target_label": "Destruction",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m267gjsv8y0zyr3gjbv529z7_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267gjsv8y0zyr3gjbv529z7_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0003",
+      "source_label": "Photos → show → destruction in #Bayside",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "show"
+    },
+    {
+      "legend_key_id": "01m267grkbz47qj8pwm26f2e48_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267grkbz47qj8pwm26f2e48_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0003",
+      "source_label": "Photos → show destruction in → Bayside",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "show destruction in"
+    },
+    {
+      "legend_key_id": "01m0h8zr9ge4ymdwdyt09afk3w_0004_to_debris",
+      "source": "01m0h8zr9ge4ymdwdyt09afk3w_0004",
+      "target": "debris_h000",
+      "source_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "target_label": "Debris",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m267gjsv8y0zyr3gjbv529z9_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267gjsv8y0zyr3gjbv529z9_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0004",
+      "source_label": "Debris → is scattered around → coastal house",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "is scattered around"
+    },
+    {
+      "legend_key_id": "01m267grkbz47qj8pwm26f2e49_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267grkbz47qj8pwm26f2e49_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0004",
+      "source_label": "Aerial view → shows → flooded, muddy ground and scattered debris",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "shows"
+    },
+    {
+      "legend_key_id": "01m0h8zr9ge4ymdwdyt09afk3w_0005_to_natural_disaster_damage",
+      "source": "01m0h8zr9ge4ymdwdyt09afk3w_0005",
+      "target": "natural_disaster_damage_h000",
+      "source_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "target_label": "Natural Disaster Damage",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m267gjsv8y0zyr3gjbv529za_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267gjsv8y0zyr3gjbv529za_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0005",
+      "source_label": "Hurricane #Harvey → caused → structural damage",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "caused"
+    },
+    {
+      "legend_key_id": "01m0h8zr9ge4ymdwdyt09afk3w_0006_to_flooding",
+      "source": "01m0h8zr9ge4ymdwdyt09afk3w_0006",
+      "target": "flooding_h000",
+      "source_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "target_label": "Flooding",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m267grkbz47qj8pwm26f2e49_0002_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267grkbz47qj8pwm26f2e49_0002",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0006",
+      "source_label": "Aerial view → shows → flooded, muddy ground and scattered debris",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "shows"
+    },
+    {
+      "legend_key_id": "01m267gwycy4sdsw5kq36pm32n_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267gwycy4sdsw5kq36pm32n_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0006",
+      "source_label": "Water → is flowing from → a larger turbulent body into a swampy area",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "is flowing from"
+    },
+    {
+      "legend_key_id": "01m0h8zr9ge4ymdwdyt09afk3w_0007_to_weather",
+      "source": "01m0h8zr9ge4ymdwdyt09afk3w_0007",
+      "target": "weather_h000",
+      "source_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "target_label": "Weather",
+      "hierarchy_link": "CLUSTER_to_H000",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "01m267grkbz47qj8pwm26f2e4b_0001_to_01m0h8zr9ge4ymdwdyt09afk3w",
+      "source": "01m267grkbz47qj8pwm26f2e4b_0001",
+      "target": "01m0h8zr9ge4ymdwdyt09afk3w_0007",
+      "source_label": "Environmental setting → includes → overcast, diffuse lighting condition",
+      "target_label": "01M0H8ZR9GE4YMDWDYT09AFK3W",
+      "hierarchy_link": "TRIPLET_to_CLUSTER",
+      "predicate": "includes"
+    },
+    {
+      "legend_key_id": "debris_h000_to_debris",
+      "source": "debris_h000",
+      "target": "debris_h001",
+      "source_label": "Debris",
+      "target_label": "Debris",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "destruction_h000_to_destruction",
+      "source": "destruction_h000",
+      "target": "destruction_h001",
+      "source_label": "Destruction",
+      "target_label": "Destruction",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environmental_destruction_h000_to_environment_and_sustainability",
+      "source": "environmental_destruction_h000",
+      "target": "environment_and_sustainability_h001",
+      "source_label": "Environmental Destruction",
+      "target_label": "Environment and Sustainability",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environmental_threat_h000_to_environment_and_sustainability",
+      "source": "environmental_threat_h000",
+      "target": "environment_and_sustainability_h001",
+      "source_label": "Environmental Threat",
+      "target_label": "Environment and Sustainability",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "event_cancellation_h000_to_event",
+      "source": "event_cancellation_h000",
+      "target": "event_h001",
+      "source_label": "Event Cancellation",
+      "target_label": "Event",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "fire_h000_to_fire",
+      "source": "fire_h000",
+      "target": "fire_h001",
+      "source_label": "Fire",
+      "target_label": "Fire",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "fire_dynamics_h000_to_fire",
+      "source": "fire_dynamics_h000",
+      "target": "fire_h001",
+      "source_label": "Fire Dynamics",
+      "target_label": "Fire",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "flooding_h000_to_flood",
+      "source": "flooding_h000",
+      "target": "flood_h001",
+      "source_label": "Flooding",
+      "target_label": "Flood",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "natural_disaster_h000_to_natural",
+      "source": "natural_disaster_h000",
+      "target": "natural_h001",
+      "source_label": "Natural Disaster",
+      "target_label": "Natural",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "natural_disaster_damage_h000_to_natural",
+      "source": "natural_disaster_damage_h000",
+      "target": "natural_h001",
+      "source_label": "Natural Disaster Damage",
+      "target_label": "Natural",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "public_safety_h000_to_public_engagement",
+      "source": "public_safety_h000",
+      "target": "public_engagement_h001",
+      "source_label": "Public Safety",
+      "target_label": "Public Engagement",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "structural_damage_h000_to_structural",
+      "source": "structural_damage_h000",
+      "target": "structural_h001",
+      "source_label": "Structural Damage",
+      "target_label": "Structural",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "weather_h000_to_weather",
+      "source": "weather_h000",
+      "target": "weather_h001",
+      "source_label": "Weather",
+      "target_label": "Weather",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "wildfire_location_h000_to_wildfire",
+      "source": "wildfire_location_h000",
+      "target": "wildfire_h001",
+      "source_label": "Wildfire Location",
+      "target_label": "Wildfire",
+      "hierarchy_link": "H000_to_H001",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "debris_h001_to_debris",
+      "source": "debris_h001",
+      "target": "debris_h002",
+      "source_label": "Debris",
+      "target_label": "Debris",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "destruction_h001_to_destruction",
+      "source": "destruction_h001",
+      "target": "destruction_h002",
+      "source_label": "Destruction",
+      "target_label": "Destruction",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environment_and_sustainability_h001_to_environment",
+      "source": "environment_and_sustainability_h001",
+      "target": "environment_h002",
+      "source_label": "Environment and Sustainability",
+      "target_label": "Environment",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "event_h001_to_events_and_gatherings",
+      "source": "event_h001",
+      "target": "events_and_gatherings_h002",
+      "source_label": "Event",
+      "target_label": "Events and Gatherings",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "fire_h001_to_fire",
+      "source": "fire_h001",
+      "target": "fire_h002",
+      "source_label": "Fire",
+      "target_label": "Fire",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "flood_h001_to_weather_and_forecasting",
+      "source": "flood_h001",
+      "target": "weather_and_forecasting_h002",
+      "source_label": "Flood",
+      "target_label": "Weather and Forecasting",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "natural_h001_to_natural",
+      "source": "natural_h001",
+      "target": "natural_h002",
+      "source_label": "Natural",
+      "target_label": "Natural",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "public_engagement_h001_to_population_and_societal_dynamics",
+      "source": "public_engagement_h001",
+      "target": "population_and_societal_dynamics_h002",
+      "source_label": "Public Engagement",
+      "target_label": "Population and Societal Dynamics",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "structural_h001_to_symbolic_aspects",
+      "source": "structural_h001",
+      "target": "symbolic_aspects_h002",
+      "source_label": "Structural",
+      "target_label": "Symbolic Aspects",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "weather_h001_to_environment_and_nature",
+      "source": "weather_h001",
+      "target": "environment_and_nature_h002",
+      "source_label": "Weather",
+      "target_label": "Environment and Nature",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "wildfire_h001_to_environment_and_nature",
+      "source": "wildfire_h001",
+      "target": "environment_and_nature_h002",
+      "source_label": "Wildfire",
+      "target_label": "Environment and Nature",
+      "hierarchy_link": "H001_to_H002",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "debris_h002_to_debris",
+      "source": "debris_h002",
+      "target": "debris_h003",
+      "source_label": "Debris",
+      "target_label": "Debris",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "destruction_h002_to_natural_disasters_and_emergencies",
+      "source": "destruction_h002",
+      "target": "natural_disasters_and_emergencies_h003",
+      "source_label": "Destruction",
+      "target_label": "Natural Disasters and Emergencies",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environment_h002_to_environment_and_nature",
+      "source": "environment_h002",
+      "target": "environment_and_nature_h003",
+      "source_label": "Environment",
+      "target_label": "Environment and Nature",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environment_and_nature_h002_to_environment_and_nature",
+      "source": "environment_and_nature_h002",
+      "target": "environment_and_nature_h003",
+      "source_label": "Environment and Nature",
+      "target_label": "Environment and Nature",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "events_and_gatherings_h002_to_events_and_gatherings",
+      "source": "events_and_gatherings_h002",
+      "target": "events_and_gatherings_h003",
+      "source_label": "Events and Gatherings",
+      "target_label": "Events and Gatherings",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "fire_h002_to_environment_and_nature",
+      "source": "fire_h002",
+      "target": "environment_and_nature_h003",
+      "source_label": "Fire",
+      "target_label": "Environment and Nature",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "natural_h002_to_natural_phenomena",
+      "source": "natural_h002",
+      "target": "natural_phenomena_h003",
+      "source_label": "Natural",
+      "target_label": "Natural Phenomena",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "population_and_societal_dynamics_h002_to_population_and_society",
+      "source": "population_and_societal_dynamics_h002",
+      "target": "population_and_society_h003",
+      "source_label": "Population and Societal Dynamics",
+      "target_label": "Population and Society",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "symbolic_aspects_h002_to_visual_art",
+      "source": "symbolic_aspects_h002",
+      "target": "visual_art_h003",
+      "source_label": "Symbolic Aspects",
+      "target_label": "Visual Art",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "weather_and_forecasting_h002_to_natural_phenomena",
+      "source": "weather_and_forecasting_h002",
+      "target": "natural_phenomena_h003",
+      "source_label": "Weather and Forecasting",
+      "target_label": "Natural Phenomena",
+      "hierarchy_link": "H002_to_H003",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "debris_h003_to_damage",
+      "source": "debris_h003",
+      "target": "damage_h004",
+      "source_label": "Debris",
+      "target_label": "Damage",
+      "hierarchy_link": "H003_to_H004",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environment_and_nature_h003_to_environment_and_nature",
+      "source": "environment_and_nature_h003",
+      "target": "environment_and_nature_h004",
+      "source_label": "Environment and Nature",
+      "target_label": "Environment and Nature",
+      "hierarchy_link": "H003_to_H004",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "events_and_gatherings_h003_to_events_and_gatherings",
+      "source": "events_and_gatherings_h003",
+      "target": "events_and_gatherings_h004",
+      "source_label": "Events and Gatherings",
+      "target_label": "Events and Gatherings",
+      "hierarchy_link": "H003_to_H004",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "natural_disasters_and_emergencies_h003_to_natural_disasters_and_emergencies",
+      "source": "natural_disasters_and_emergencies_h003",
+      "target": "natural_disasters_and_emergencies_h004",
+      "source_label": "Natural Disasters and Emergencies",
+      "target_label": "Natural Disasters and Emergencies",
+      "hierarchy_link": "H003_to_H004",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "natural_phenomena_h003_to_natural_phenomena",
+      "source": "natural_phenomena_h003",
+      "target": "natural_phenomena_h004",
+      "source_label": "Natural Phenomena",
+      "target_label": "Natural Phenomena",
+      "hierarchy_link": "H003_to_H004",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "population_and_society_h003_to_population_and_society",
+      "source": "population_and_society_h003",
+      "target": "population_and_society_h004",
+      "source_label": "Population and Society",
+      "target_label": "Population and Society",
+      "hierarchy_link": "H003_to_H004",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "visual_art_h003_to_media_and_content",
+      "source": "visual_art_h003",
+      "target": "media_and_content_h004",
+      "source_label": "Visual Art",
+      "target_label": "Media and Content",
+      "hierarchy_link": "H003_to_H004",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "damage_h004_to_damage",
+      "source": "damage_h004",
+      "target": "damage_h005",
+      "source_label": "Damage",
+      "target_label": "Damage",
+      "hierarchy_link": "H004_to_H005",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environment_and_nature_h004_to_environment",
+      "source": "environment_and_nature_h004",
+      "target": "environment_h005",
+      "source_label": "Environment and Nature",
+      "target_label": "Environment",
+      "hierarchy_link": "H004_to_H005",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "events_and_gatherings_h004_to_events_and_gatherings",
+      "source": "events_and_gatherings_h004",
+      "target": "events_and_gatherings_h005",
+      "source_label": "Events and Gatherings",
+      "target_label": "Events and Gatherings",
+      "hierarchy_link": "H004_to_H005",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "media_and_content_h004_to_media_and_content",
+      "source": "media_and_content_h004",
+      "target": "media_and_content_h005",
+      "source_label": "Media and Content",
+      "target_label": "Media and Content",
+      "hierarchy_link": "H004_to_H005",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "natural_disasters_and_emergencies_h004_to_natural_disasters_and_emergencies",
+      "source": "natural_disasters_and_emergencies_h004",
+      "target": "natural_disasters_and_emergencies_h005",
+      "source_label": "Natural Disasters and Emergencies",
+      "target_label": "Natural Disasters and Emergencies",
+      "hierarchy_link": "H004_to_H005",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "natural_phenomena_h004_to_environment",
+      "source": "natural_phenomena_h004",
+      "target": "environment_h005",
+      "source_label": "Natural Phenomena",
+      "target_label": "Environment",
+      "hierarchy_link": "H004_to_H005",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "population_and_society_h004_to_demographic_and_population",
+      "source": "population_and_society_h004",
+      "target": "demographic_and_population_h005",
+      "source_label": "Population and Society",
+      "target_label": "Demographic and Population",
+      "hierarchy_link": "H004_to_H005",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "damage_h005_to_crisis_and_disasters",
+      "source": "damage_h005",
+      "target": "crisis_and_disasters_h006",
+      "source_label": "Damage",
+      "target_label": "Crisis and Disasters",
+      "hierarchy_link": "H005_to_H006",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "demographic_and_population_h005_to_social_and_demographics",
+      "source": "demographic_and_population_h005",
+      "target": "social_and_demographics_h006",
+      "source_label": "Demographic and Population",
+      "target_label": "Social and Demographics",
+      "hierarchy_link": "H005_to_H006",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environment_h005_to_environment",
+      "source": "environment_h005",
+      "target": "environment_h006",
+      "source_label": "Environment",
+      "target_label": "Environment",
+      "hierarchy_link": "H005_to_H006",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "events_and_gatherings_h005_to_events_and_gatherings",
+      "source": "events_and_gatherings_h005",
+      "target": "events_and_gatherings_h006",
+      "source_label": "Events and Gatherings",
+      "target_label": "Events and Gatherings",
+      "hierarchy_link": "H005_to_H006",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "media_and_content_h005_to_media_and_communications",
+      "source": "media_and_content_h005",
+      "target": "media_and_communications_h006",
+      "source_label": "Media and Content",
+      "target_label": "Media and Communications",
+      "hierarchy_link": "H005_to_H006",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "natural_disasters_and_emergencies_h005_to_crisis_and_disasters",
+      "source": "natural_disasters_and_emergencies_h005",
+      "target": "crisis_and_disasters_h006",
+      "source_label": "Natural Disasters and Emergencies",
+      "target_label": "Crisis and Disasters",
+      "hierarchy_link": "H005_to_H006",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "crisis_and_disasters_h006_to_crisis_and_disasters",
+      "source": "crisis_and_disasters_h006",
+      "target": "crisis_and_disasters_h007",
+      "source_label": "Crisis and Disasters",
+      "target_label": "Crisis and Disasters",
+      "hierarchy_link": "H006_to_H007",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environment_h006_to_environment",
+      "source": "environment_h006",
+      "target": "environment_h007",
+      "source_label": "Environment",
+      "target_label": "Environment",
+      "hierarchy_link": "H006_to_H007",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "events_and_gatherings_h006_to_activities",
+      "source": "events_and_gatherings_h006",
+      "target": "activities_h007",
+      "source_label": "Events and Gatherings",
+      "target_label": "Activities",
+      "hierarchy_link": "H006_to_H007",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "media_and_communications_h006_to_media_and_communications",
+      "source": "media_and_communications_h006",
+      "target": "media_and_communications_h007",
+      "source_label": "Media and Communications",
+      "target_label": "Media and Communications",
+      "hierarchy_link": "H006_to_H007",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "social_and_demographics_h006_to_social_and_demographics",
+      "source": "social_and_demographics_h006",
+      "target": "social_and_demographics_h007",
+      "source_label": "Social and Demographics",
+      "target_label": "Social and Demographics",
+      "hierarchy_link": "H006_to_H007",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "activities_h007_to_activity_coordination",
+      "source": "activities_h007",
+      "target": "activity_coordination_h008",
+      "source_label": "Activities",
+      "target_label": "Activity Coordination",
+      "hierarchy_link": "H007_to_H008",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "crisis_and_disasters_h007_to_crisis_and_disasters",
+      "source": "crisis_and_disasters_h007",
+      "target": "crisis_and_disasters_h008",
+      "source_label": "Crisis and Disasters",
+      "target_label": "Crisis and Disasters",
+      "hierarchy_link": "H007_to_H008",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "environment_h007_to_environment",
+      "source": "environment_h007",
+      "target": "environment_h008",
+      "source_label": "Environment",
+      "target_label": "Environment",
+      "hierarchy_link": "H007_to_H008",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "media_and_communications_h007_to_media_and_communications",
+      "source": "media_and_communications_h007",
+      "target": "media_and_communications_h008",
+      "source_label": "Media and Communications",
+      "target_label": "Media and Communications",
+      "hierarchy_link": "H007_to_H008",
+      "predicate": ""
+    },
+    {
+      "legend_key_id": "social_and_demographics_h007_to_social_and_demographics",
+      "source": "social_and_demographics_h007",
+      "target": "social_and_demographics_h008",
+      "source_label": "Social and Demographics",
+      "target_label": "Social and Demographics",
+      "hierarchy_link": "H007_to_H008",
+      "predicate": ""
+    }
+  ]
+}
