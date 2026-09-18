@@ -67,3 +67,18 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# WAR / MAR working notes.
+# Local-only: informal working context (decisions, blockers, chat-agreed tasks)
+# that feeds the Weekly and Monthly Activity Reports. The reports themselves are
+# the shared record and are archived to WARs ON MARs; these notes are not.
+war-notes/
+
+# Agent working notes. Same reasoning as war-notes/ above: the sprint's own
+# record is the commits, not the notes behind them.
+network-ui/ai-war-notes/
+
+# Machine-specific media roots. Holds absolute paths on whoever's machine is
+# running the viewer, so it is local-only; mediaRoots.example.json is the
+# committed template.
+network-ui/src/lib/mediaRoots.json
