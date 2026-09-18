@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FileUpload from './FileUpload';
 import FieldMapper from './FieldMapper';
 import FilterPanel from './FilterPanel';
-import DirectedGraph, { type DaggerNodeKind } from './DirectedGraph';
-import NodeMedia, { type ContentOverride } from './NodeMedia';
+import DirectedGraph, { type DaggerNodeKind, type NodeThumbnail } from './DirectedGraph';
+import NodeMedia from './NodeMedia';
 import { daggerNodeHandling, daggerNodeMedia, daggerVisibleSubgraph, daggerWarningTags, isCategoryNode, isClusterNode, isTripletNode, type DatasetOption } from '../../lib/parseData';
 import type { DaggerNode } from '../../types';
-import { MEDIA_BASE_URLS } from '../../lib/mediaConfig';
+import { MEDIA_ROOTS, mediaCandidates } from '../../lib/mediaConfig';
+import { isRecordConcealed, type ContentOverride } from '../../lib/contentBlur';
 import { suggestMapping, type FilterMap, type VisualMapping } from '../../lib/mapping';
 import { enumerateChains, reachableWithin, chainToEdgeKeys } from '../../lib/chains';
 import { buildLabel, BUILD_SHA_FULL, BUILD_TIME } from '../../lib/buildInfo';
@@ -21,8 +22,13 @@ const CHAIN_MAX_PATHS = 200;
 // It used to be a text box in the sidebar, persisted in `localStorage` under
 // `mediaBaseUrl`. Rusty's call: "Giving the user the option to give the base
 // url is a bad design. This should be an internal configuration." The control
-// is gone and the roots now come from `lib/mediaConfig.ts` as a LIST, tried in
+// is gone and the roots now come from `lib/mediaRoots.json` as a LIST, tried in
 // order, because one graph file can carry paths from more than one collection.
+//
+// AA050 went further, on Rusty's word "please make it work without use of
+// urls": those roots are FOLDERS ON DISK now, not URLs, and Vite serves each
+// one so the page can fetch it same-origin. Nothing here changes but the name —
+// `lib/mediaConfig.ts` still hands this file the list to pass down.
 //
 // Nothing here reads `localStorage.mediaBaseUrl` any more, and nothing writes
 // or clears it. A value a viewer stored in an earlier build is left exactly
@@ -209,6 +215,26 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   //
   // Not persisted, like the threshold beside it and for the same reason.
   const [contentOverride, setContentOverride] = useState<ContentOverride | null>(null);
+
+  // ── AA052: has the viewer revealed the OPEN record in the panel? ───────────
+  // Rusty: "I do want an image hover. And of course it will have the blur for
+  // it as well." — and the blur has to follow the same reveal the panel does,
+  // or hovering a node the viewer has deliberately left concealed would show
+  // them the thing they declined to look at.
+  //
+  // ONE boolean, not a set of revealed ids, because the panel's reveal is
+  // per-node by construction: `NodeMedia` is keyed by the selected node and the
+  // override in force, so at most ONE record can be revealed at a time and it
+  // is always the open one. A set would be able to represent states the panel
+  // cannot produce, and the tooltip would then be answering from a model of the
+  // panel rather than from the panel.
+  //
+  // `NodeMedia` keeps the state and reports it here; the remount that already
+  // closes a reveal is what resets this too, so there is no second reset rule
+  // to keep in step. When nothing is selected the panel is not mounted and this
+  // value is stale — harmless, because it is only ever consulted for the node
+  // that IS selected, and a stale `true` therefore matches no node at all.
+  const [revealedInPanel, setRevealedInPanel] = useState(false);
 
   // Moving the slider hands control back to the threshold. This is the ONLY
   // place the slider's value changes, so the clearing cannot be forgotten at
@@ -508,6 +534,49 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     return lit.size > 0 ? lit : null;
   }, [dagger, selectedNode, subgraph]);
 
+  // ── AA052: node id → its hover thumbnail, and whether it is concealed ──────
+  //
+  // IMAGE ONLY. The tooltip is an HTML surface with `pointer-events: none` that
+  // clears on `mouseout`, so audio and video controls could not be operated in
+  // it and a reveal button could not be clicked. A node with no image entry —
+  // every cluster, every category, and every one of the fixture's seven
+  // audio-only triplets — is simply absent from this map and keeps the tooltip
+  // it has always had.
+  //
+  // The FIRST image entry, when a record carries more than one. The tooltip is
+  // a glance at what a node holds, not a gallery; the panel is where every
+  // entry is rendered with its own description, model and confidence.
+  //
+  // THE BLUR IS THE POINT, and it is not restated here. `isRecordConcealed` is
+  // `NodeMedia`'s own decision function — `content_blur` from the pipeline, the
+  // reveal threshold, and the Hide All / Reveal All override, in that priority
+  // — so the tooltip and the panel cannot disagree about a record. The only
+  // thing this adds is WHOSE reveal counts: the per-node reveal belongs to the
+  // open node and to no other, so every other node is asked with `false`.
+  //
+  // Recomputed whenever the threshold, the override or that reveal changes, on
+  // a map the size of the node count. The DAGGER fixture is 118 nodes.
+  const nodeThumbnails = useMemo<Map<string, NodeThumbnail> | null>(() => {
+    if (!dagger) return null;
+    const thumbs = new Map<string, NodeThumbnail>();
+    for (const [id, node] of dagger.nodesById) {
+      const image = daggerNodeMedia(node).find(m => m.channel === 'image');
+      if (!image) continue;
+      // The SAME joiner the media card uses, exported from `NodeMedia` for
+      // exactly this (Mike's AA050 offer). Every configured root, in order.
+      const urls = mediaCandidates(MEDIA_ROOTS, image.path).map(c => c.url);
+      if (urls.length === 0) continue;
+      const concealed = isRecordConcealed(
+        daggerNodeHandling(node),
+        revealThreshold,
+        contentOverride,
+        revealedInPanel && id === selectedNode,
+      );
+      thumbs.set(id, { urls, concealed });
+    }
+    return thumbs.size > 0 ? thumbs : null;
+  }, [dagger, revealThreshold, contentOverride, revealedInPanel, selectedNode]);
+
   // Pull out details of the selected node (using rows that mention it)
   const selectionRows = useMemo(() => {
     if (!dataset || !mapping || !selectedNode) return [];
@@ -767,7 +836,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
 
           {/* AA043: the Media base-URL control used to sit here. It is gone —
               the media roots are internal configuration in
-              `src/lib/mediaConfig.ts`, not a viewer setting. */}
+              `src/lib/mediaRoots.json`, not a viewer setting. */}
 
           {/* Handling: the reveal threshold and the warning-tag filter. Shown
               only for a DAGGER-shaped file, like the Media control above, so no
@@ -1144,6 +1213,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           nodeLabels={nodeLabels}
           nodeKinds={nodeKinds}
           litNodes={litNodes}
+          nodeThumbnails={nodeThumbnails}
           spread={spread}
           edgeLabelMode={edgeLabelMode}
         />
@@ -1236,11 +1306,12 @@ export default function DataExplorer({ onSwitchMode }: Props) {
               <NodeMedia
                 key={`${selectedNode}::${contentOverride ?? 'threshold'}`}
                 media={daggerNodeMedia(dagger.nodesById.get(selectedNode))}
-                baseUrls={MEDIA_BASE_URLS}
+                roots={MEDIA_ROOTS}
                 handling={daggerNodeHandling(dagger.nodesById.get(selectedNode))}
                 warningTags={daggerWarningTags(dagger.nodesById.get(selectedNode))}
                 revealThreshold={revealThreshold}
                 contentOverride={contentOverride}
+                onRevealedChange={setRevealedInPanel}
               />
             )}
 

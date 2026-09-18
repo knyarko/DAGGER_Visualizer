@@ -11,6 +11,37 @@ import { DEGREE_IN, DEGREE_OUT, DEGREE_TOTAL, isDegreeSentinel } from '../../lib
  */
 export type DaggerNodeKind = 'triplet' | 'cluster' | 'category';
 
+/**
+ * AA052 — the image thumbnail one node shows in its hover tooltip.
+ *
+ * Rusty: "I do want an image hover. And of course it will have the blur for it
+ * as well."
+ *
+ * IMAGE ONLY. The tooltip is an HTML surface with `pointer-events: none` that
+ * is cleared on `mouseout`, so an `<audio controls>` or a `<video controls>`
+ * in it could never be operated and a reveal button in it could never be
+ * clicked. Dana established that in sprint 1 and nothing has changed. A node
+ * with no image — a cluster, a category, an audio-only triplet — is simply
+ * absent from the map and gets the tooltip exactly as it was before AA052.
+ *
+ * `DataExplorer` fills this in, because only it holds the DAGGER index, the
+ * reveal threshold, the Hide All / Reveal All override and the panel's per-node
+ * reveal. This component paints what it is handed and decides nothing about
+ * concealment — there is no second copy of that rule here to drift from
+ * `NodeMedia`'s.
+ */
+export interface NodeThumbnail {
+  /** Every address to try, in configured-root order, from the same joiner the
+   *  media card uses (`mediaCandidates` in `lib/mediaConfig.ts`). The first that
+   *  loads wins; when all of them fail there is no thumbnail. */
+  urls: string[];
+  /** Conceal it — by `NodeMedia`'s own `isRecordConcealed`, never by a rule
+   *  restated here. True means the viewer has not chosen to look at this
+   *  record, so the thumbnail is blurred and covered exactly as the panel's
+   *  media element is. See `lib/contentBlur.ts`. */
+  concealed: boolean;
+}
+
 interface Props {
   rows: Record<string, unknown>[];
   fields: FieldInfo[];
@@ -58,6 +89,17 @@ interface Props {
    * simply are not here to paint.
    */
   litNodes?: Set<string> | null;
+  /**
+   * node id → the image thumbnail its hover tooltip shows (AA052), or null for
+   * a file that has none — every non-DAGGER dataset, whose tooltips are then
+   * byte-for-byte what they were.
+   *
+   * Read through a ref at hover time rather than from the effect that builds
+   * the graph: the concealment in here changes every time the reveal slider
+   * moves, and rebuilding the whole simulation on a slider drag would be a
+   * much worse bug than the one this prop fixes.
+   */
+  nodeThumbnails?: Map<string, NodeThumbnail> | null;
   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
   spread?: number;
   /**
@@ -127,6 +169,104 @@ const SELECTION_RING = '#06b6d4';
 /** The ring every other node wears. */
 const NODE_RING = '#fff';
 
+// ── AA052: the hover thumbnail ───────────────────────────────────────────────
+//
+// Small enough to sit inside the tooltip's 420px cap without covering the graph
+// it is describing, and large enough to be worth having.
+const THUMB_WIDTH = 180;
+const THUMB_MAX_HEIGHT = 140;
+// The panel conceals with Tailwind's `blur-lg` (16px) over a `bg-gray-950/55`
+// scrim. These are those two values, so a concealed thumbnail is concealed to
+// exactly the degree a concealed media card is — parity, not an approximation.
+const THUMB_BLUR_PX = 16;
+const THUMB_SCRIM = 'rgba(2, 6, 23, 0.55)';
+// A CSS blur fades to transparent at the element's edge, which would leave a
+// legible rim of the original image. Scaling the image up inside a clipped
+// frame pushes that rim outside the visible box.
+const THUMB_BLUR_SCALE = 1.25;
+
+/**
+ * Append one node's image thumbnail to the tooltip, or nothing at all.
+ *
+ * Built as DOM rather than appended to the tooltip's HTML string, for two
+ * reasons that are both about correctness:
+ *
+ *  1. The `<img>` needs a REAL `onerror` handler to walk the configured roots
+ *     in order, the same ordered fallback the media card does. Inline `onerror`
+ *     markup inside a `.html()` string is script in a string, next to values
+ *     that come out of a data file.
+ *  2. A concealed thumbnail must be blurred from its FIRST paint. The blur is
+ *     therefore set on the element before `src` is, and an `<img>` with no
+ *     `src` paints nothing — so there is no frame in which a concealed image
+ *     is on screen unblurred. This is the requirement AA052 is really about,
+ *     and it is why the ordering below is not cosmetic.
+ *
+ * There is no reveal control here, deliberately. Concealed stays concealed in
+ * the tooltip; the panel is where a viewer chooses to look.
+ */
+function appendNodeThumbnail(host: HTMLElement | null, thumb: NodeThumbnail | undefined): void {
+  if (!host || !thumb || thumb.urls.length === 0) return;
+
+  const frame = document.createElement('div');
+  frame.style.position = 'relative';
+  frame.style.marginTop = '6px';
+  frame.style.width = `${THUMB_WIDTH}px`;
+  frame.style.overflow = 'hidden';
+  frame.style.borderRadius = '3px';
+  frame.style.background = '#000';
+
+  const img = document.createElement('img');
+  img.alt = '';
+  img.style.display = 'block';
+  img.style.width = '100%';
+  img.style.maxHeight = `${THUMB_MAX_HEIGHT}px`;
+  img.style.objectFit = 'contain';
+
+  if (thumb.concealed) {
+    img.style.filter = `blur(${THUMB_BLUR_PX}px)`;
+    img.style.transform = `scale(${THUMB_BLUR_SCALE})`;
+  }
+  frame.appendChild(img);
+
+  if (thumb.concealed) {
+    // The scrim says WHY it is unreadable, so a blurred thumbnail does not read
+    // as a broken one — and names the panel as the way out without offering a
+    // control that could not be clicked through `pointer-events: none` anyway.
+    const scrim = document.createElement('div');
+    scrim.style.position = 'absolute';
+    scrim.style.left = '0';
+    scrim.style.top = '0';
+    scrim.style.right = '0';
+    scrim.style.bottom = '0';
+    scrim.style.display = 'flex';
+    scrim.style.alignItems = 'center';
+    scrim.style.justifyContent = 'center';
+    scrim.style.padding = '4px';
+    scrim.style.textAlign = 'center';
+    scrim.style.lineHeight = '1.3';
+    scrim.style.fontSize = '10px';
+    scrim.style.color = '#fcd34d';
+    scrim.style.background = THUMB_SCRIM;
+    scrim.textContent = 'concealed — reveal it in the panel';
+    frame.appendChild(scrim);
+  }
+
+  // The ordered fallback, exactly as `MediaItem` does it: the element is the
+  // probe, a failed load advances the cursor by one, the cursor only ever moves
+  // forward. When every configured root has failed there is no thumbnail to
+  // show, so the block removes itself and the tooltip is the one it always was.
+  let attempt = 0;
+  img.onerror = () => {
+    attempt += 1;
+    if (attempt < thumb.urls.length) img.src = thumb.urls[attempt];
+    else frame.remove();
+  };
+  // LAST. See (2) above.
+  img.src = thumb.urls[0];
+
+  host.appendChild(frame);
+}
+
 function fmt(v: unknown): string {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'string') return v;
@@ -172,6 +312,7 @@ export default function DirectedGraph({
   nodeLabels = null,
   nodeKinds = null,
   litNodes = null,
+  nodeThumbnails = null,
   spread = 1.0,
   edgeLabelMode = 'auto',
 }: Props) {
@@ -181,6 +322,19 @@ export default function DirectedGraph({
   const simRef = useRef<d3.Simulation<Node, Link> | null>(null);
   const spreadRef = useRef(spread);
   spreadRef.current = spread;
+  // AA052. Same trick as `spreadRef` above, for the same reason: the tooltip
+  // handlers are installed once by the effect that builds the graph, and the
+  // thumbnails change on every move of the reveal slider and every press of
+  // Hide All / Reveal All. Reading them through a ref keeps that a re-render
+  // and not a rebuild of the simulation — and keeps the CURRENT concealment in
+  // force at the moment of the hover, which is the whole safety requirement.
+  const thumbnailsRef = useRef(nodeThumbnails);
+  // Written in an effect, not during render: React forbids the second, and an
+  // effect is early enough regardless — it runs on commit, before any hover
+  // the new value has to answer for.
+  useEffect(() => {
+    thumbnailsRef.current = nodeThumbnails;
+  }, [nodeThumbnails]);
 
   const fieldsByName = useMemo(() => new Map(fields.map(f => [f.name, f])), [fields]);
 
@@ -475,7 +629,14 @@ export default function DirectedGraph({
         if (mapping.nodeSizeField && fieldsByName.get(mapping.nodeSizeField)?.type === 'number') {
           lines.push(`${mapping.nodeSizeField}: ${d.sizeValue}`);
         }
-        tooltip.html(lines.join('<br/>')).style('visibility', 'visible');
+        // AA052 — the text first, then the image under it. `.html()` replaces
+        // the tooltip's whole contents, so the previous node's thumbnail is
+        // gone before this one's is built: a thumbnail cannot outlive the node
+        // it belongs to, and a concealed node's cover cannot be left behind
+        // over the next node's image.
+        tooltip.html(lines.join('<br/>'));
+        appendNodeThumbnail(tooltip.node(), thumbnailsRef.current?.get(d.id));
+        tooltip.style('visibility', 'visible');
       })
       .on('mousemove', (event) => {
         tooltip.style('top', (event.pageY - 10) + 'px').style('left', (event.pageX + 12) + 'px');

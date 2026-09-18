@@ -1,5 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { DaggerHandling, DaggerMedia } from '../../types';
+import { MEDIA_ROOTS_FILE, mediaCandidates, type MediaRoot } from '../../lib/mediaConfig';
+import {
+  isAboveRevealThreshold,
+  isBlurredByPipeline,
+  isRecordConcealed,
+  type ContentOverride,
+} from '../../lib/contentBlur';
 
 // ─────────────────────────── DAGGER media surface ───────────────────────────
 //
@@ -9,13 +16,21 @@ import type { DaggerHandling, DaggerMedia } from '../../types';
 // array into dotted strings and silently drops a second entry.
 //
 // `media[].path` is RELATIVE and stays relative. The media ROOTS come from
-// `lib/mediaConfig.ts` — internal configuration, not a viewer setting — and
-// this component joins root to path at render time. No media file is ever
-// copied, moved, renamed or regenerated, which is what lets one graph file work
-// against a local `python -m http.server` today and a database later without
-// anything being rebuilt.
+// `lib/mediaRoots.json` through `lib/mediaConfig.ts` — internal configuration,
+// not a viewer setting — and this component joins root to path at render time.
+// No media file is ever copied, moved, renamed or regenerated.
 //
-// ── WHY `baseUrls` IS A LIST (AA043) ────────────────────────────────────────
+// ── WHAT A ROOT IS, SINCE AA050 ─────────────────────────────────────────────
+//   A root is a FOLDER ON DISK, not a URL. Rusty: "please make it work without
+//   use of urls." `mediaConfig.ts` turns each configured folder into the
+//   same-origin prefix Vite serves it at (`/__media/0`, `/__media/1`, …), and
+//   that prefix is all this component ever concatenates. The folder itself is
+//   carried alongside it only so a failure can name the thing a person would
+//   have to fix. Read the join rule in `mediaConfig.ts`; the overlap between a
+//   root's tail and a path's head is resolved on the server, so nothing here
+//   has to know the shape of either.
+//
+// ── WHY `roots` IS A LIST (AA043) ───────────────────────────────────────────
 //   One graph file can carry paths from more than one collection — the
 //   CrisisMMD images and the 911 call audio live under different roots. Each
 //   root is tried IN ORDER and the first that actually LOADS wins. "Resolves"
@@ -74,30 +89,20 @@ import type { DaggerHandling, DaggerMedia } from '../../types';
 //   the blur decides what a viewer SEES before they choose to look, not what the
 //   network carries. Access control is not this component's job and it must not
 //   be mistaken for it.
-
-/**
- * Every candidate URL for a media entry, in the order the roots are configured.
- *
- * An empty result is the "media root is not configured" state — no root is set,
- * every root is blank, or the entry has no path. It is never a throw and never
- * a guessed URL. The path is used exactly as the pipeline wrote it; only
- * leading/trailing separators at the join are normalised, so `http://host:8000`
- * and `http://host:8000/` behave the same. Duplicate roots collapse so a
- * repeated entry does not cost a repeated request.
- */
-function joinMediaUrls(baseUrls: readonly string[], path: string): string[] {
-  const rel = String(path ?? '').trim();
-  if (rel === '') return [];
-  const tail = rel.replace(/^\/+/, '');
-  const urls: string[] = [];
-  for (const raw of baseUrls) {
-    const base = String(raw ?? '').trim();
-    if (base === '') continue;
-    const url = `${base.replace(/\/+$/, '')}/${tail}`;
-    if (!urls.includes(url)) urls.push(url);
-  }
-  return urls;
-}
+//
+// ── WHERE TWO PIECES OF THIS FILE WENT (AA052) ──────────────────────────────
+//   `mediaCandidates` (the root-to-path joiner) now lives in
+//   `lib/mediaConfig.ts`, beside the roots it joins, and the conceal decision
+//   (`isRecordConcealed`, and the `ContentOverride` type it obeys) now lives in
+//   `lib/contentBlur.ts`. Both are imported back here and this component
+//   behaves exactly as it did.
+//
+//   They moved because the hover thumbnail (AA052) needs BOTH, and a second
+//   copy of either — a second way to build a media address, a second answer to
+//   "is this record concealed" — is the shape of the bug where the panel hides
+//   a record and the tooltip does not. A component file also may not export a
+//   plain function (`react-refresh/only-export-components`), so sharing them
+//   from here was not available even if it had been the right call.
 
 /** Channels this component knows how to play. Anything else is left to its
  *  description — the channel vocabulary is the pipeline's, not the UI's, so an
@@ -109,9 +114,9 @@ function isPlayableChannel(channel: unknown): channel is 'image' | 'audio' | 'vi
 export interface MediaItemProps {
   /** One entry from `daggerNodeMedia(node)`. */
   media: DaggerMedia;
-  /** The media roots from `lib/mediaConfig.ts`, tried in order until one
-   *  loads. An empty list = no root configured. */
-  baseUrls: readonly string[];
+  /** The configured media folders from `lib/mediaConfig.ts`, tried in order
+   *  until one loads. An empty list = no folder configured. */
+  roots: readonly MediaRoot[];
 }
 
 /**
@@ -121,25 +126,25 @@ export interface MediaItemProps {
  * description, model or confidence text, so blurring it hides the media and
  * only the media.
  */
-export function MediaItem({ media, baseUrls }: MediaItemProps) {
-  const urls = useMemo(() => joinMediaUrls(baseUrls, media.path), [baseUrls, media.path]);
+export function MediaItem({ media, roots }: MediaItemProps) {
+  const candidates = useMemo(() => mediaCandidates(roots, media.path), [roots, media.path]);
   // How many roots have already failed for this entry. A failed load advances
   // the cursor to the next root; when it runs past the end, every configured
   // root has been tried and the card falls back to the description. Counting
   // rather than flagging is what makes "tried in order until one resolves"
   // a single piece of state, and it cannot loop: it only ever moves forward.
   const [attempt, setAttempt] = useState(0);
-  const url = attempt < urls.length ? urls[attempt] : null;
+  const url = attempt < candidates.length ? candidates[attempt].url : null;
   const nextRoot = () => setAttempt(a => a + 1);
 
   const frame = 'rounded bg-black/40 border border-gray-700 overflow-hidden';
   const notice = 'px-2 py-3 text-[10px] text-gray-400';
 
-  if (urls.length === 0) {
+  if (candidates.length === 0) {
     return (
       <div className={frame}>
         <div className={notice}>
-          Media root is not configured — add one to <span className="font-mono">src/lib/mediaConfig.ts</span> to load this file.
+          No media folder is configured — add one to <span className="font-mono">{MEDIA_ROOTS_FILE}</span> to load this file.
           <div className="mt-1 text-gray-500 break-all font-mono">{media.path}</div>
         </div>
       </div>
@@ -158,14 +163,21 @@ export function MediaItem({ media, baseUrls }: MediaItemProps) {
 
   // Every configured root has been tried and none of them holds this file.
   // All of them are named, not just the last: a viewer looking at a missing
-  // file needs to see which roots were searched to know which one to fix.
+  // file needs to see which folders were searched to know which one to fix. The
+  // FOLDER is what a person edits, so the folder is what leads each line; the
+  // address underneath it is what was actually requested, which is what a
+  // network tab will show.
   if (url === null) {
     return (
       <div className={frame}>
         <div className={notice}>
-          File did not load from {urls.length === 1 ? 'the configured media root' : `any of the ${urls.length} configured media roots`} — showing the description below instead.
-          {urls.map(u => (
-            <div key={u} className="mt-1 text-gray-500 break-all font-mono">{u}</div>
+          File did not load from {candidates.length === 1 ? 'the configured media folder' : `any of the ${candidates.length} configured media folders`} — showing the description below instead.
+          Check <span className="font-mono">{MEDIA_ROOTS_FILE}</span>.
+          {candidates.map(c => (
+            <div key={c.url} className="mt-1 break-all font-mono">
+              <div className="text-gray-500">{c.rootPath}</div>
+              <div className="text-gray-600">{c.url}</div>
+            </div>
           ))}
         </div>
       </div>
@@ -210,23 +222,13 @@ export function MediaItem({ media, baseUrls }: MediaItemProps) {
   );
 }
 
-/**
- * AA048 — which of the two override buttons is pressed, if either.
- *
- * `null` (the prop's absence, and its default) is not a third button: it is the
- * ordinary state in which the reveal threshold decides. Naming the type here,
- * beside the component that obeys it, keeps the sidebar that sets it and the
- * card that reads it from drifting into two different vocabularies.
- */
-export type ContentOverride = 'hide' | 'reveal';
-
 export interface NodeMediaProps {
   /** Every entry the node carries. A record can hold several — they all render. */
   media: DaggerMedia[];
-  /** The media roots from `lib/mediaConfig.ts`, tried in order until one
-   *  loads. An empty list = no root configured. This is internal
+  /** The configured media folders from `lib/mediaConfig.ts`, tried in order
+   *  until one loads. An empty list = no folder configured. This is internal
    *  configuration, not a viewer setting — there is no control for it. */
-  baseUrls: readonly string[];
+  roots: readonly MediaRoot[];
   /** The node's HANDLING block exactly as `daggerNodeHandling` returns it —
    *  the pipeline's object, untouched. null for a node that carries none: a
    *  cluster, a category, or a triplet the pipeline did not score. */
@@ -244,6 +246,17 @@ export interface NodeMediaProps {
    *  default — hands the decision back to `revealThreshold`. Exactly one of the
    *  three is in force at any moment. */
   contentOverride?: ContentOverride | null;
+  /** AA052. Called whenever the PER-NODE reveal below changes, so the hover
+   *  thumbnail can obey it: "a node the viewer has revealed in the panel shows
+   *  unblurred on hover; one they have not, does not."
+   *
+   *  The state stays HERE rather than being lifted, because the call site
+   *  already keys this component by the selected node and the override in
+   *  force — so a remount is what makes a reveal per-node, and a remount fires
+   *  this with `false` on the way in. Lifting the state would have meant
+   *  re-implementing that reset somewhere else and keeping the two in step.
+   *  Optional: a caller that does not care about the reveal passes nothing. */
+  onRevealedChange?: (revealed: boolean) => void;
 }
 
 /**
@@ -270,11 +283,12 @@ function blurReason(handling: DaggerHandling | null): string {
  */
 export default function NodeMedia({
   media,
-  baseUrls,
+  roots,
   handling = null,
   revealThreshold = 0,
   warningTags = [],
   contentOverride = null,
+  onRevealedChange,
 }: NodeMediaProps) {
   // Per-node reveal, and ONLY this node. The call site keys this component by
   // the selected node id AND by the override in force, so both selecting a
@@ -283,37 +297,30 @@ export default function NodeMedia({
   // and — AA048 — it cannot survive a trip through Hide All either.
   const [revealed, setRevealed] = useState(false);
 
+  // AA052 — tell the call site, so the hover thumbnail can obey the same
+  // reveal. This fires on mount too, with `false`, which is what makes the
+  // remount that already resets the reveal also reset what the tooltip
+  // believes: selecting another node, or crossing into or out of an override,
+  // re-keys this component and the report goes back to "not revealed" with it.
+  // Above the early return below, because a hook may not be conditional.
+  useEffect(() => {
+    onRevealedChange?.(revealed);
+  }, [revealed, onRevealedChange]);
+
   // A node with neither media nor handling has nothing to say — cluster and
   // category nodes land here and stay silent, exactly as before.
   if (media.length === 0 && handling === null) return null;
 
   const sensitivity = handling ? handling.sensitivity : null;
 
-  // The PIPELINE's answer, read and never recomputed. `content_blur` is false at
-  // exactly 0.0 and true everywhere else; re-deriving it here would drift from
-  // the pipeline the first time that rule changes (Mike's contract).
-  //
-  // An ABSENT `content_blur` is not an all-clear. `content_blur` is optional in
-  // the type, so a record can be scored without being answered; only an explicit
-  // `false` is the pipeline saying "do not conceal this". Anything else is left
-  // to the reveal threshold below, which still shows a record scored 0.00. That
-  // is a missing-value policy, not a re-derivation from `sensitivity`.
-  const blurredByPipeline = handling !== null && handling.content_blur !== false;
-
-  // The slider is a reveal threshold: at or below it is shown, above it stays
-  // concealed. The epsilon guards the last bit of a double — a slider step and a
-  // JSON literal that both read "0.35" must compare as equal, not as greater.
-  const aboveThreshold = sensitivity !== null && sensitivity > revealThreshold + 1e-9;
-
-  // AA048 — the single place the three states are resolved, in priority order.
-  // An override answers for EVERY record, so neither `content_blur` nor the
-  // threshold nor the per-node reveal is consulted when one is in force: "Hide
-  // All Content" that left some records showing because the pipeline had scored
-  // them safe would be a button that does not do what it says.
-  const concealed =
-    contentOverride === 'hide' ? true
-    : contentOverride === 'reveal' ? false
-    : blurredByPipeline && aboveThreshold && !revealed;
+  // AA048's three states and AA052's tooltip now read the SAME function, above.
+  // These two are the sub-answers the status line below has to be able to name
+  // — "the pipeline did not mark this" is a different sentence from "above the
+  // threshold" — and they are the same predicates `isRecordConcealed` composes,
+  // not a second statement of them.
+  const blurred = isBlurredByPipeline(handling);
+  const aboveThreshold = isAboveRevealThreshold(handling, revealThreshold);
+  const concealed = isRecordConcealed(handling, revealThreshold, contentOverride, revealed);
 
   // Whether the per-node reveal is even a question here. Under either override
   // it is not: the buttons and the state line below go quiet rather than
@@ -340,14 +347,14 @@ export default function NodeMedia({
               ? 'Hide All Content is in force — concealed regardless of sensitivity'
               : contentOverride === 'reveal'
                 ? 'Reveal All Content is in force — shown regardless of sensitivity'
-                : !blurredByPipeline
+                : !blurred
                   ? 'the pipeline did not mark this record for blurring'
                   : concealed
                     ? `above the reveal threshold (${revealThreshold.toFixed(2)}) — concealed`
                     : !aboveThreshold
                       ? `at or below the reveal threshold (${revealThreshold.toFixed(2)}) — shown`
                       : 'revealed on this node only'}
-            {thresholdInForce && revealed && blurredByPipeline && aboveThreshold && (
+            {thresholdInForce && revealed && blurred && aboveThreshold && (
               <button
                 onClick={() => setRevealed(false)}
                 className="ml-2 text-blue-400 hover:text-blue-300"
@@ -426,7 +433,7 @@ export default function NodeMedia({
                   {concealed ? (
                     <div className="relative rounded overflow-hidden" title={reason}>
                       <div className="blur-lg pointer-events-none select-none" aria-hidden="true">
-                        <MediaItem media={m} baseUrls={baseUrls} />
+                        <MediaItem media={m} roots={roots} />
                       </div>
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 p-2 text-center bg-gray-950/55">
                         <div className="text-[10px] leading-snug text-amber-200">{reason}</div>
@@ -451,7 +458,7 @@ export default function NodeMedia({
                       </div>
                     </div>
                   ) : (
-                    <MediaItem media={m} baseUrls={baseUrls} />
+                    <MediaItem media={m} roots={roots} />
                   )}
                 </div>
 
