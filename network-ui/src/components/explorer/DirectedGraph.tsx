@@ -110,6 +110,14 @@ interface Props {
   expandedClusterNodes?: Set<string>;
   /** Toggle a message cluster's triplets on double-click. */
   onClusterDoubleClick?: (id: string) => void;
+  /** Hide every message cluster unless its category is explicitly expanded. */
+  hideAllMessages?: boolean;
+  /** Category node ids whose message clusters are collapsed. */
+  collapsedCategoryNodes?: Set<string>;
+  /** Category node ids whose message clusters are expanded while Hide All is active. */
+  expandedCategoryNodes?: Set<string>;
+  /** Toggle a category's message clusters on double-click. */
+  onCategoryDoubleClick?: (id: string) => void;
   /**
    * Edge label visibility mode.
    *   · 'auto' — show when total edge count ≤ density cap, hide otherwise
@@ -348,6 +356,10 @@ export default function DirectedGraph({
   collapsedClusterNodes = new Set<string>(),
   expandedClusterNodes = new Set<string>(),
   onClusterDoubleClick = () => {},
+  hideAllMessages = false,
+  collapsedCategoryNodes = new Set<string>(),
+  expandedCategoryNodes = new Set<string>(),
+  onCategoryDoubleClick = () => {},
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   // Stable handle to the running simulation so we can retune forces without
@@ -450,7 +462,30 @@ export default function DirectedGraph({
   }, [rows, mapping, fieldsByName]);
 
   const displayGraph = useMemo(() => {
+    const hiddenMessages = new Set<string>();
     const hiddenTriplets = new Set<string>();
+
+    if (hideAllMessages) {
+      for (const node of graph.nodes) {
+        if (nodeKinds?.get(node.id) === 'cluster') hiddenMessages.add(node.id);
+      }
+    }
+
+    for (const link of graph.links) {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      const sourceKind = nodeKinds?.get(sourceId);
+      const targetKind = nodeKinds?.get(targetId);
+
+      if (sourceKind === 'category' && targetKind === 'cluster') {
+        if (hideAllMessages && expandedCategoryNodes.has(sourceId)) hiddenMessages.delete(targetId);
+        if (!hideAllMessages && collapsedCategoryNodes.has(sourceId)) hiddenMessages.add(targetId);
+      }
+      if (targetKind === 'category' && sourceKind === 'cluster') {
+        if (hideAllMessages && expandedCategoryNodes.has(targetId)) hiddenMessages.delete(sourceId);
+        if (!hideAllMessages && collapsedCategoryNodes.has(targetId)) hiddenMessages.add(sourceId);
+      }
+    }
 
     if (hideAllTriplets) {
       for (const node of graph.nodes) {
@@ -460,10 +495,10 @@ export default function DirectedGraph({
       for (const link of graph.links) {
         const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
         const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-        if (expandedClusterNodes.has(sourceId) && nodeKinds?.get(targetId) === 'triplet') {
+        if (!hiddenMessages.has(sourceId) && expandedClusterNodes.has(sourceId) && nodeKinds?.get(targetId) === 'triplet') {
           hiddenTriplets.delete(targetId);
         }
-        if (expandedClusterNodes.has(targetId) && nodeKinds?.get(sourceId) === 'triplet') {
+        if (!hiddenMessages.has(targetId) && expandedClusterNodes.has(targetId) && nodeKinds?.get(sourceId) === 'triplet') {
           hiddenTriplets.delete(sourceId);
         }
       }
@@ -480,17 +515,24 @@ export default function DirectedGraph({
       }
     }
 
-    if (hiddenTriplets.size === 0) return graph;
+    for (const link of graph.links) {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      if (hiddenMessages.has(sourceId) && nodeKinds?.get(targetId) === 'triplet') hiddenTriplets.add(targetId);
+      if (hiddenMessages.has(targetId) && nodeKinds?.get(sourceId) === 'triplet') hiddenTriplets.add(sourceId);
+    }
 
-    const nodes = graph.nodes.filter(node => !hiddenTriplets.has(node.id));
+    if (hiddenMessages.size === 0 && hiddenTriplets.size === 0) return graph;
+
+    const nodes = graph.nodes.filter(node => !hiddenMessages.has(node.id) && !hiddenTriplets.has(node.id));
     const links = graph.links.filter(link => {
       const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
       const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-      return !hiddenTriplets.has(sourceId) && !hiddenTriplets.has(targetId);
+      return !hiddenMessages.has(sourceId) && !hiddenMessages.has(targetId) && !hiddenTriplets.has(sourceId) && !hiddenTriplets.has(targetId);
     });
 
     return { nodes, links };
-  }, [graph, nodeKinds, hideAllTriplets, collapsedClusterNodes, expandedClusterNodes]);
+  }, [graph, nodeKinds, hideAllTriplets, collapsedClusterNodes, expandedClusterNodes, hideAllMessages, collapsedCategoryNodes, expandedCategoryNodes]);
 
   // Build color scale once per change in graph
   const colorScale = useMemo(() => {
@@ -698,6 +740,7 @@ export default function DirectedGraph({
       .on('dblclick', (event, d) => {
         event.stopPropagation();
         if (nodeKinds?.get(d.id) === 'cluster') onClusterDoubleClick(d.id);
+        else if (nodeKinds?.get(d.id) === 'category') onCategoryDoubleClick(d.id);
       })
       .call(
         d3.drag<SVGGElement, Node>()
@@ -898,7 +941,7 @@ export default function DirectedGraph({
       simRef.current = null;
       tooltip.remove();
     };
-  }, [displayGraph, colorScale, nodeFill, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels, onClusterDoubleClick]); // Kept edgeLabelMode
+  }, [displayGraph, colorScale, nodeFill, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels, onClusterDoubleClick, onCategoryDoubleClick]); // Kept edgeLabelMode
   // selectedNode handled by a separate effect below to avoid restarting the simulation on selection
 
   // Spread control — retune the existing simulation's link/charge forces

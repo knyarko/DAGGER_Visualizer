@@ -190,6 +190,34 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   const [hideAllTriplets, setHideAllTriplets] = useState(false);
   const [collapsedClusterNodes, setCollapsedClusterNodes] = useState<Set<string>>(new Set());
   const [expandedClusterNodes, setExpandedClusterNodes] = useState<Set<string>>(new Set());
+  const [hideAllMessages, setHideAllMessages] = useState(false);
+  const [collapsedCategoryNodes, setCollapsedCategoryNodes] = useState<Set<string>>(new Set());
+  const [expandedCategoryNodes, setExpandedCategoryNodes] = useState<Set<string>>(new Set());
+
+  const setAllMessagesVisible = useCallback((visible: boolean) => {
+    setHideAllMessages(!visible);
+    setCollapsedCategoryNodes(new Set());
+    setExpandedCategoryNodes(new Set());
+  }, []);
+
+  const toggleCategoryMessages = useCallback((id: string) => {
+    if (hideAllMessages) {
+      setExpandedCategoryNodes(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      return;
+    }
+
+    setCollapsedCategoryNodes(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, [hideAllMessages]);
 
   const setAllTripletsVisible = useCallback((visible: boolean) => {
     setHideAllTriplets(!visible);
@@ -220,6 +248,9 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     setHideAllTriplets(false);
     setCollapsedClusterNodes(new Set());
     setExpandedClusterNodes(new Set());
+    setHideAllMessages(false);
+    setCollapsedCategoryNodes(new Set());
+    setExpandedCategoryNodes(new Set());
   }, [selectedOptionId]);
   // ── HANDLING tier (VT003) ──────────────────────────────────────────────────
   // The viewer's REVEAL THRESHOLD. Content whose `sensitivity` is at or below it
@@ -815,6 +846,70 @@ export default function DataExplorer({ onSwitchMode }: Props) {
         )}
 
         <div className="overflow-y-auto p-3 flex-1 space-y-4">
+          {/* AA047: node glyph + colour legend */}
+          {dagger && (
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 border-b border-gray-700 pb-2 mb-3">
+                Node legend
+              </h2>
+              <div className="rounded p-2 bg-gray-800/40">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                      <polygon
+                        points="9,1 17,9 9,17 1,9"
+                        fill="#fb7185"
+                        stroke="#fff"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-200">Triplet</span>
+                    <span className="text-[10px] text-gray-500">light red</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                      <rect
+                        x="2"
+                        y="2"
+                        width="14"
+                        height="14"
+                        fill="#c084fc"
+                        stroke="#fff"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-200">Message</span>
+                    <span className="text-[10px] text-gray-500">purple</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                      <polygon
+                        points="4,2 14,2 17,9 14,16 4,16 1,9"
+                        fill="#94a3b8"
+                        stroke="#fff"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-200">Category</span>
+                    <span className="text-[10px] text-gray-500">grey</span>
+                  </div>
+                </div>
+
+                {mapping.nodeColorField ? (
+                  <div className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-700">
+                    Tier colors shown here are the defaults. The mapped node-color field overrides them.
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-700">
+                    Glyphs show the DAGGER tier; colors identify the same tier.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Visual layout controls */}
           <div>
             <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
@@ -885,70 +980,38 @@ export default function DataExplorer({ onSwitchMode }: Props) {
                 <div className="text-[10px] text-gray-500 mt-1.5">
                   Double-click a Message node to expand or collapse its triplets.
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* AA047: node glyph + colour legend */}
-          {dagger && (
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 border-b border-gray-700 pb-2 mb-3">
-                Node legend
-              </h2>
-              <div className="rounded p-2 bg-gray-800/40">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
-                      <polygon
-                        points="9,1 17,9 9,17 1,9"
-                        fill="#fb7185"
-                        stroke="#fff"
-                        strokeWidth="1"
-                      />
-                    </svg>
-                    <span className="text-xs text-gray-200">Triplet</span>
-                    <span className="text-[10px] text-gray-500">light red</span>
+                <div className="mt-3 pt-3 border-t border-gray-700">
+                  <div className="text-xs font-semibold text-gray-300 mb-1.5">Messages</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      onClick={() => setAllMessagesVisible(true)}
+                      aria-pressed={!hideAllMessages && collapsedCategoryNodes.size === 0}
+                      title="Show every message node and its triplets, subject to the Triplets toggle."
+                      className={`px-2 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
+                        !hideAllMessages && collapsedCategoryNodes.size === 0
+                          ? 'bg-blue-600 border-blue-400 text-white'
+                          : 'bg-gray-800/60 border-gray-700 text-gray-300 hover:border-gray-500'
+                      }`}
+                    >
+                      Show All
+                    </button>
+                    <button
+                      onClick={() => setAllMessagesVisible(false)}
+                      aria-pressed={hideAllMessages}
+                      title="Hide every message node. Double-click a category to expand its messages."
+                      className={`px-2 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
+                        hideAllMessages
+                          ? 'bg-blue-600 border-blue-400 text-white'
+                          : 'bg-gray-800/60 border-gray-700 text-gray-300 hover:border-gray-500'
+                      }`}
+                    >
+                      Hide All
+                    </button>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
-                      <rect
-                        x="2"
-                        y="2"
-                        width="14"
-                        height="14"
-                        fill="#c084fc"
-                        stroke="#fff"
-                        strokeWidth="1"
-                      />
-                    </svg>
-                    <span className="text-xs text-gray-200">Message</span>
-                    <span className="text-[10px] text-gray-500">purple</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
-                      <polygon
-                        points="4,2 14,2 17,9 14,16 4,16 1,9"
-                        fill="#94a3b8"
-                        stroke="#fff"
-                        strokeWidth="1"
-                      />
-                    </svg>
-                    <span className="text-xs text-gray-200">Category</span>
-                    <span className="text-[10px] text-gray-500">grey</span>
+                  <div className="text-[10px] text-gray-500 mt-1.5">
+                    Double-click a Category node to expand or collapse its messages.
                   </div>
                 </div>
-
-                {mapping.nodeColorField ? (
-                  <div className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-700">
-                    Tier colors shown here are the defaults. The mapped node-color field overrides them.
-                  </div>
-                ) : (
-                  <div className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-700">
-                    Glyphs show the DAGGER tier; colors identify the same tier.
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -1361,6 +1424,10 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           collapsedClusterNodes={collapsedClusterNodes}
           expandedClusterNodes={expandedClusterNodes}
           onClusterDoubleClick={toggleClusterTriplets}
+          hideAllMessages={hideAllMessages}
+          collapsedCategoryNodes={collapsedCategoryNodes}
+          expandedCategoryNodes={expandedCategoryNodes}
+          onCategoryDoubleClick={toggleCategoryMessages}
         />
       </main>
 
