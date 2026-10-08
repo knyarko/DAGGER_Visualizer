@@ -537,8 +537,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   // ── AA052: node id → its hover thumbnail, and whether it is concealed ──────
   //
   // IMAGE ONLY. The tooltip is an HTML surface with `pointer-events: none` that
-  // clears on `mouseout`, so audio and video controls could not be operated in
-  // it and a reveal button could not be clicked. A node with no image entry —
+  // clears on `mouseout`, so audio and video controls could not be operated
+  // in it and a reveal button could not be clicked. A node with no image entry —
   // every cluster, every category, and every one of the fixture's seven
   // audio-only triplets — is simply absent from this map and keeps the tooltip
   // it has always had.
@@ -811,6 +811,70 @@ export default function DataExplorer({ onSwitchMode }: Props) {
               </div>
             </div>
           </div>
+
+          {/* AA047: node glyph + colour legend */}
+          {dagger && (
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 border-b border-gray-700 pb-2 mb-3">
+                Node legend
+              </h2>
+              <div className="rounded p-2 bg-gray-800/40">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                      <polygon
+                        points="9,1 17,9 9,17 1,9"
+                        fill="#fb7185"
+                        stroke="#fff"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-200">Triplet</span>
+                    <span className="text-[10px] text-gray-500">light red</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                      <rect
+                        x="2"
+                        y="2"
+                        width="14"
+                        height="14"
+                        fill="#c084fc"
+                        stroke="#fff"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-200">Message</span>
+                    <span className="text-[10px] text-gray-500">purple</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                      <polygon
+                        points="4,2 14,2 17,9 14,16 4,16 1,9"
+                        fill="#94a3b8"
+                        stroke="#fff"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-200">Category</span>
+                    <span className="text-[10px] text-gray-500">grey</span>
+                  </div>
+                </div>
+
+                {mapping.nodeColorField ? (
+                  <div className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-700">
+                    Tier colors shown here are the defaults. The mapped node-color field overrides them.
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-700">
+                    Glyphs show the DAGGER tier; colors identify the same tier.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Edge labels: auto (show below density cap) / on / off */}
           <div>

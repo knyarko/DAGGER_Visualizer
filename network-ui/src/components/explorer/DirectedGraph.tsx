@@ -18,7 +18,7 @@ export type DaggerNodeKind = 'triplet' | 'cluster' | 'category';
  * as well."
  *
  * IMAGE ONLY. The tooltip is an HTML surface with `pointer-events: none` that
- * is cleared on `mouseout`, so an `<audio controls>` or a `<video controls>`
+ * is cleared on `mouseout`, so an `<audio controls>` or a `<video controls`
  * in it could never be operated and a reveal button in it could never be
  * clicked. Dana established that in sprint 1 and nothing has changed. A node
  * with no image — a cluster, a category, an audio-only triplet — is simply
@@ -142,8 +142,8 @@ const PALETTE = d3.schemeTableau10;
 // within that blue highlight."
 //
 // So there are two independent jobs and one constraint. The KIND colours say
-// what a node is; the SELECTION colour says what you clicked and where else
-// that same thing appears. Neither may be confusable with the other, and
+// what a node is; the SELECTION colour says what you clicked and where else that
+// same thing appears. Neither may be confusable with the other, and
 // neither may be confusable with the cyan-blue this graph already uses for a
 // selected node's ring, its edges and its arrowheads.
 //
@@ -168,6 +168,27 @@ const SELECTION_FILL = '#a3e635';   // lime-400
 const SELECTION_RING = '#06b6d4';
 /** The ring every other node wears. */
 const NODE_RING = '#fff';
+
+// Node glyphs — shape is independent of node colour and size.
+function nodeGlyph(kind: DaggerNodeKind | undefined, radius: number): string {
+  const size = radius * 1.15;
+
+  switch (kind) {
+    case 'triplet':
+      return `M0,${-size} L${size},0 L0,${size} L${-size},0 Z`;
+
+    case 'cluster':
+      return `M${-size},${-size} H${size} V${size} H${-size} Z`;
+
+    case 'category': {
+      const h = size * 0.866;
+      return `M${-size / 2},${-h} L${size / 2},${-h} L${size},0 L${size / 2},${h} L${-size / 2},${h} L${-size},0 Z`;
+    }
+
+    default:
+      return `M0,${-radius} A${radius},${radius} 0 1,1 0,${radius} A${radius},${radius} 0 1,1 0,${-radius} Z`;
+  }
+}
 
 // ── AA052: the hover thumbnail ───────────────────────────────────────────────
 //
@@ -577,8 +598,8 @@ export default function DirectedGraph({
           })
       );
 
-    nodeSel.append('circle')
-      .attr('r', n => sizeScale(n.sizeValue))
+    nodeSel.append('path')
+      .attr('d', n => nodeGlyph(nodeKinds?.get(n.id), sizeScale(n.sizeValue)))
       .attr('fill', n => nodeFill(n.id, n.colorKey))
       .attr('stroke', NODE_RING)
       .attr('stroke-width', 1);
@@ -859,7 +880,7 @@ export default function DirectedGraph({
     // slightly heavier white ring, which says "same thing, not the one you
     // clicked". A lit node is also never dimmed, or the feature would be
     // invisible in exactly the branches it exists to show.
-    svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
+    svg.selectAll<SVGPathElement, Node>('g.nodes g path')
       .attr('fill', d => isLit(d.id) ? SELECTION_FILL : nodeFill(d.id, d.colorKey))
       .attr('stroke', d => d.id === selectedNode ? SELECTION_RING : NODE_RING)
       .attr('stroke-width', d => d.id === selectedNode ? 3 : isLit(d.id) ? 2 : 1)
