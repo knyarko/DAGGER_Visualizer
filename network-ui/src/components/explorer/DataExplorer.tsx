@@ -184,6 +184,43 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   const fadeWindowMs = useMemo(() => fadeDurationToMs(fadeDuration), [fadeDuration]);
   // Edge label visibility: 'auto' (show below density cap), 'on', or 'off'.
   const [edgeLabelMode, setEdgeLabelMode] = useState<'auto' | 'on' | 'off'>('auto');
+
+  // Triplet visibility: all triplets are shown by default. A viewer can hide
+  // every triplet at once, or collapse/expand an individual message cluster.
+  const [hideAllTriplets, setHideAllTriplets] = useState(false);
+  const [collapsedClusterNodes, setCollapsedClusterNodes] = useState<Set<string>>(new Set());
+  const [expandedClusterNodes, setExpandedClusterNodes] = useState<Set<string>>(new Set());
+
+  const setAllTripletsVisible = useCallback((visible: boolean) => {
+    setHideAllTriplets(!visible);
+    setCollapsedClusterNodes(new Set());
+    setExpandedClusterNodes(new Set());
+  }, []);
+
+  const toggleClusterTriplets = useCallback((id: string) => {
+    if (hideAllTriplets) {
+      setExpandedClusterNodes(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      return;
+    }
+
+    setCollapsedClusterNodes(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, [hideAllTriplets]);
+
+  useEffect(() => {
+    setHideAllTriplets(false);
+    setCollapsedClusterNodes(new Set());
+    setExpandedClusterNodes(new Set());
+  }, [selectedOptionId]);
   // ── HANDLING tier (VT003) ──────────────────────────────────────────────────
   // The viewer's REVEAL THRESHOLD. Content whose `sensitivity` is at or below it
   // is shown; everything above it stays blurred until the viewer reveals that
@@ -812,6 +849,46 @@ export default function DataExplorer({ onSwitchMode }: Props) {
             </div>
           </div>
 
+          {/* Triplet visibility */}
+          {dagger && (
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 border-b border-gray-700 pb-2 mb-3">
+                Triplets
+              </h2>
+              <div className="rounded p-2 bg-gray-800/40">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => setAllTripletsVisible(true)}
+                    aria-pressed={!hideAllTriplets && collapsedClusterNodes.size === 0}
+                    title="Show every triplet in the graph."
+                    className={`px-2 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
+                      !hideAllTriplets && collapsedClusterNodes.size === 0
+                        ? 'bg-blue-600 border-blue-400 text-white'
+                        : 'bg-gray-800/60 border-gray-700 text-gray-300 hover:border-gray-500'
+                    }`}
+                  >
+                    Show All
+                  </button>
+                  <button
+                    onClick={() => setAllTripletsVisible(false)}
+                    aria-pressed={hideAllTriplets}
+                    title="Hide every triplet. Double-click a message node to expand just that message."
+                    className={`px-2 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
+                      hideAllTriplets
+                        ? 'bg-blue-600 border-blue-400 text-white'
+                        : 'bg-gray-800/60 border-gray-700 text-gray-300 hover:border-gray-500'
+                    }`}
+                  >
+                    Hide All
+                  </button>
+                </div>
+                <div className="text-[10px] text-gray-500 mt-1.5">
+                  Double-click a Message node to expand or collapse its triplets.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* AA047: node glyph + colour legend */}
           {dagger && (
             <div>
@@ -1280,6 +1357,10 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           nodeThumbnails={nodeThumbnails}
           spread={spread}
           edgeLabelMode={edgeLabelMode}
+          hideAllTriplets={hideAllTriplets}
+          collapsedClusterNodes={collapsedClusterNodes}
+          expandedClusterNodes={expandedClusterNodes}
+          onClusterDoubleClick={toggleClusterTriplets}
         />
       </main>
 

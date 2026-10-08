@@ -102,6 +102,14 @@ interface Props {
   nodeThumbnails?: Map<string, NodeThumbnail> | null;
   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
   spread?: number;
+  /** Hide every triplet unless its message cluster is explicitly expanded. */
+  hideAllTriplets?: boolean;
+  /** Message cluster node ids whose triplets are collapsed. */
+  collapsedClusterNodes?: Set<string>;
+  /** Message cluster node ids whose triplets are expanded while Hide All is active. */
+  expandedClusterNodes?: Set<string>;
+  /** Toggle a message cluster's triplets on double-click. */
+  onClusterDoubleClick?: (id: string) => void;
   /**
    * Edge label visibility mode.
    *   · 'auto' — show when total edge count ≤ density cap, hide otherwise
@@ -336,11 +344,17 @@ export default function DirectedGraph({
   nodeThumbnails = null,
   spread = 1.0,
   edgeLabelMode = 'auto',
+  hideAllTriplets = false,
+  collapsedClusterNodes = new Set<string>(),
+  expandedClusterNodes = new Set<string>(),
+  onClusterDoubleClick = () => {},
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   // Stable handle to the running simulation so we can retune forces without
   // rebuilding the whole SVG when the spread slider moves.
   const simRef = useRef<d3.Simulation<Node, Link> | null>(null);
+  const nodePositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const zoomTransformRef = useRef<d3.ZoomTransform | null>(null);
   const spreadRef = useRef(spread);
   spreadRef.current = spread;
   // AA052. Same trick as `spreadRef` above, for the same reason: the tooltip
@@ -435,6 +449,49 @@ export default function DirectedGraph({
     return { nodes: Array.from(nodeMap.values()), links };
   }, [rows, mapping, fieldsByName]);
 
+  const displayGraph = useMemo(() => {
+    const hiddenTriplets = new Set<string>();
+
+    if (hideAllTriplets) {
+      for (const node of graph.nodes) {
+        if (nodeKinds?.get(node.id) === 'triplet') hiddenTriplets.add(node.id);
+      }
+
+      for (const link of graph.links) {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        if (expandedClusterNodes.has(sourceId) && nodeKinds?.get(targetId) === 'triplet') {
+          hiddenTriplets.delete(targetId);
+        }
+        if (expandedClusterNodes.has(targetId) && nodeKinds?.get(sourceId) === 'triplet') {
+          hiddenTriplets.delete(sourceId);
+        }
+      }
+    } else {
+      for (const link of graph.links) {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        if (collapsedClusterNodes.has(sourceId) && nodeKinds?.get(targetId) === 'triplet') {
+          hiddenTriplets.add(targetId);
+        }
+        if (collapsedClusterNodes.has(targetId) && nodeKinds?.get(sourceId) === 'triplet') {
+          hiddenTriplets.add(sourceId);
+        }
+      }
+    }
+
+    if (hiddenTriplets.size === 0) return graph;
+
+    const nodes = graph.nodes.filter(node => !hiddenTriplets.has(node.id));
+    const links = graph.links.filter(link => {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      return !hiddenTriplets.has(sourceId) && !hiddenTriplets.has(targetId);
+    });
+
+    return { nodes, links };
+  }, [graph, nodeKinds, hideAllTriplets, collapsedClusterNodes, expandedClusterNodes]);
+
   // Build color scale once per change in graph
   const colorScale = useMemo(() => {
     if (!mapping.nodeColorField) return null;
@@ -513,21 +570,79 @@ export default function DirectedGraph({
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
-      .on('zoom', (event) => g.attr('transform', event.transform));
+      .on('zoom', (event) => {
+        zoomTransformRef.current = event.transform;
+        g.attr('transform', event.transform);
+      });
     svg.call(zoom);
+    if (zoomTransformRef.current) {
+      svg.call(zoom.transform, zoomTransformRef.current);
+    }
+
+    // Reuse the last known position for every node that is still visible.
+    // Newly revealed triplets start beside their connected cluster instead of
+    // appearing at a random location, so expanding a message feels continuous.
+    const previousPositions = nodePositionsRef.current;
+    const anchoredNodes: Node[] = [];
+    for (const node of displayGraph.nodes) {
+      const positionedNode = node as Node & d3.SimulationNodeDatum;
+      const previous = previousPositions.get(node.id);
+      if (previous) {
+        positionedNode.x = previous.x;
+        positionedNode.y = previous.y;
+        anchoredNodes.push(positionedNode);
+        continue;
+      }
+
+      for (const link of displayGraph.links) {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        const otherId = sourceId === node.id ? targetId : targetId === node.id ? sourceId : null;
+        if (!otherId) continue;
+        const other = previousPositions.get(otherId);
+        if (other) {
+          positionedNode.x = other.x;
+          positionedNode.y = other.y;
+          break;
+        }
+      }
+    }
 
     const initialSpread = spreadRef.current;
-    const sim = d3.forceSimulation<Node>(graph.nodes)
-      .force('link', d3.forceLink<Node, Link>(graph.links).id(d => d.id).distance(BASE_LINK_DISTANCE * initialSpread).strength(0.5))
+    const sim = d3.forceSimulation<Node>(displayGraph.nodes)
+      .force('link', d3.forceLink<Node, Link>(displayGraph.links).id(d => d.id).distance(BASE_LINK_DISTANCE * initialSpread).strength(0.5))
       .force('charge', d3.forceManyBody<Node>().strength(BASE_CHARGE_STRENGTH * initialSpread))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide<Node>().radius(n => sizeScale(n.sizeValue) + 4));
     simRef.current = sim;
 
+    // Keep the existing graph visually anchored while newly revealed triplets
+    // settle into place. Releasing the anchors after a short transition lets
+    // the normal force layout resume without making the whole graph jump.
+    let releaseAnchorsTimer: ReturnType<typeof setTimeout> | null = null;
+    if (anchoredNodes.length > 0) {
+      for (const node of anchoredNodes) {
+        const anchoredNode = node as Node & d3.SimulationNodeDatum;
+        anchoredNode.fx = anchoredNode.x;
+        anchoredNode.fy = anchoredNode.y;
+      }
+      sim.alpha(0.12).alphaDecay(0.08).restart();
+      releaseAnchorsTimer = setTimeout(() => {
+        for (const node of anchoredNodes) {
+          const anchoredNode = node as Node & d3.SimulationNodeDatum;
+          anchoredNode.fx = null;
+          anchoredNode.fy = null;
+        }
+        sim.alpha(0.08).restart();
+      }, 450);
+    } else {
+      sim.alpha(1).restart();
+    }
+
     const linkSel = g.append('g')
       .attr('class', 'links')
       .selectAll<SVGLineElement, Link>('line')
-      .data(graph.links)
+      .data(displayGraph.links)
       .join('line')
       .attr('stroke', '#9ca3af')
       .attr('stroke-opacity', 0.6) // initial; selection effect overrides per-edge
@@ -541,22 +656,22 @@ export default function DirectedGraph({
     const EDGE_LABEL_DENSITY_CAP = 500;
    /* Keeping incase conflict: Merge of code segment
       const showEdgeLabels = !!mapping.edgeLabelField &&
-      graph.links.some(l => l.label) &&
-      graph.links.length <= EDGE_LABEL_DENSITY_CAP;*/
-    const labelsAvailable = !!mapping.edgeLabelField && graph.links.some(l => l.label);
+      displayGraph.links.some(l => l.label) &&
+      displayGraph.links.length <= EDGE_LABEL_DENSITY_CAP;*/
+    const labelsAvailable = !!mapping.edgeLabelField && displayGraph.links.some(l => l.label);
     const showEdgeLabels = labelsAvailable && (
       edgeLabelMode === 'on'
         ? true
         : edgeLabelMode === 'off'
           ? false
-          : graph.links.length <= EDGE_LABEL_DENSITY_CAP
+          : displayGraph.links.length <= EDGE_LABEL_DENSITY_CAP
     );
 
     const labelSel = showEdgeLabels
       ? g.append('g')
           .attr('class', 'edge-labels')
           .selectAll<SVGTextElement, Link>('text')
-          .data(graph.links)
+          .data(displayGraph.links)
           .join('text')
           .text(l => l.label)
           .attr('text-anchor', 'middle')
@@ -573,12 +688,16 @@ export default function DirectedGraph({
     const nodeSel = g.append('g')
       .attr('class', 'nodes')
       .selectAll<SVGGElement, Node>('g')
-      .data(graph.nodes)
+      .data(displayGraph.nodes)
       .join('g')
       .style('cursor', 'pointer')
       .on('click', (event, d) => {
         event.stopPropagation();
         onNodeClick(d.id === selectedNode ? null : d.id);
+      })
+      .on('dblclick', (event, d) => {
+        event.stopPropagation();
+        if (nodeKinds?.get(d.id) === 'cluster') onClusterDoubleClick(d.id);
       })
       .call(
         d3.drag<SVGGElement, Node>()
@@ -768,11 +887,18 @@ export default function DirectedGraph({
     });
 
     return () => {
+      if (releaseAnchorsTimer) clearTimeout(releaseAnchorsTimer);
+      for (const node of displayGraph.nodes) {
+        const positionedNode = node as Node & d3.SimulationNodeDatum;
+        if (typeof positionedNode.x === 'number' && typeof positionedNode.y === 'number') {
+          nodePositionsRef.current.set(node.id, { x: positionedNode.x, y: positionedNode.y });
+        }
+      }
       sim.stop();
       simRef.current = null;
       tooltip.remove();
     };
-  }, [graph, colorScale, nodeFill, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels]); // Kept edgeLabelMode
+  }, [displayGraph, colorScale, nodeFill, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels, onClusterDoubleClick]); // Kept edgeLabelMode
   // selectedNode handled by a separate effect below to avoid restarting the simulation on selection
 
   // Spread control — retune the existing simulation's link/charge forces
@@ -964,7 +1090,7 @@ export default function DirectedGraph({
         if (highlightedNodes) return (linkInHighlight(l) ? 0.9 : 0.05) * t;
         return 0.9 * t;
       });
-  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity, litNodes, nodeFill, graph]);
+  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity, litNodes, nodeFill, displayGraph]);
 
   // Legend for color scale
   const legendItems = useMemo(() => {
@@ -977,9 +1103,9 @@ export default function DirectedGraph({
       <svg ref={svgRef} className="w-full h-full bg-gray-950" />
       <div className="absolute top-2 left-2 bg-gray-900/70 backdrop-blur-sm rounded px-3 py-2 text-xs">
         <div className="text-gray-400">
-          {graph.nodes.length} nodes · {graph.links.length} edges
+          {displayGraph.nodes.length} nodes · {displayGraph.links.length} edges
         </div>
-        {mapping.edgeLabelField && graph.links.length > 500 && (
+        {mapping.edgeLabelField && displayGraph.links.length > 500 && (
           <div className="text-amber-400/80 text-[10px] mt-1">
             edge labels auto-hidden ({'>'}500 edges) — toggle "on" in Layout to force
           </div>
