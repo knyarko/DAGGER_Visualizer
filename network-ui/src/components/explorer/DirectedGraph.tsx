@@ -30,6 +30,11 @@ export type DaggerNodeKind = 'triplet' | 'cluster' | 'category';
  * concealment — there is no second copy of that rule here to drift from
  * `NodeMedia`'s.
  */
+export interface NodeTooltipDetail {
+  label: string;
+  value: string;
+}
+
 export interface NodeThumbnail {
   /** Every address to try, in configured-root order, from the same joiner the
    *  media card uses (`mediaCandidates` in `lib/mediaConfig.ts`). The first that
@@ -100,6 +105,8 @@ interface Props {
    * much worse bug than the one this prop fixes.
    */
   nodeThumbnails?: Map<string, NodeThumbnail> | null;
+  /** Additional DAGGER content to display in each node's hover tooltip. */
+  nodeTooltipDetails?: Map<string, NodeTooltipDetail[]> | null;
   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
   spread?: number;
   /** Hide every triplet unless its message cluster is explicitly expanded. */
@@ -117,7 +124,7 @@ interface Props {
   /** Category node ids whose message clusters are expanded while Hide All is active. */
   expandedCategoryNodes?: Set<string>;
   /** Toggle a category's message clusters on double-click. */
-  onCategoryDoubleClick?: (id: string) => void;
+  onCategoryDoubleClick?: (id: string, childCategoryIds?: string[]) => void;
   /**
    * Edge label visibility mode.
    *   · 'auto' — show when total edge count ≤ density cap, hide otherwise
@@ -350,6 +357,7 @@ export default function DirectedGraph({
   nodeKinds = null,
   litNodes = null,
   nodeThumbnails = null,
+  nodeTooltipDetails = null,
   spread = 1.0,
   edgeLabelMode = 'auto',
   hideAllTriplets = false,
@@ -376,6 +384,8 @@ export default function DirectedGraph({
   // and not a rebuild of the simulation — and keeps the CURRENT concealment in
   // force at the moment of the hover, which is the whole safety requirement.
   const thumbnailsRef = useRef(nodeThumbnails);
+  const tooltipDetailsRef = useRef(nodeTooltipDetails);
+  tooltipDetailsRef.current = nodeTooltipDetails;
   // Written in an effect, not during render: React forbids the second, and an
   // effect is early enough regardless — it runs on commit, before any hover
   // the new value has to answer for.
@@ -470,6 +480,50 @@ export default function DirectedGraph({
         if (nodeKinds?.get(node.id) === 'cluster') hiddenMessages.add(node.id);
       }
     }
+
+    // A collapsed category hides every descendant tier. When it is expanded,
+    // its direct child categories can remain visible while their own children
+    // stay collapsed, allowing the hierarchy to open one level at a time.
+    const categoryChildren = new Map<string, Set<string>>();
+    const categoryDescendants = new Map<string, Set<string>>();
+    for (const link of graph.links) {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      if (nodeKinds?.get(sourceId) === 'category' && nodeKinds?.get(targetId) === 'category') {
+        if (!categoryChildren.has(sourceId)) categoryChildren.set(sourceId, new Set());
+        categoryChildren.get(sourceId)!.add(targetId);
+      }
+    }
+    const hideCategoryDescendants = (rootId: string) => {
+      const pending = [...(categoryChildren.get(rootId) ?? [])];
+      const visited = new Set<string>();
+      visited.add(rootId);
+      while (pending.length) {
+        const childId = pending.pop()!;
+        if (visited.has(childId)) continue;
+        visited.add(childId);
+        if (nodeKinds?.get(childId) === 'category') {
+          hiddenMessages.add(childId);
+          pending.push(...(categoryChildren.get(childId) ?? []));
+        }
+      }
+      for (const link of graph.links) {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        if (visited.has(sourceId) && nodeKinds?.get(targetId) === 'cluster') hiddenMessages.add(targetId);
+        if (visited.has(targetId) && nodeKinds?.get(sourceId) === 'cluster') hiddenMessages.add(sourceId);
+      }
+      for (const clusterId of hiddenMessages) {
+        if (nodeKinds?.get(clusterId) !== 'cluster') continue;
+        for (const link of graph.links) {
+          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+          if (sourceId === clusterId && nodeKinds?.get(targetId) === 'triplet') hiddenTriplets.add(targetId);
+          if (targetId === clusterId && nodeKinds?.get(sourceId) === 'triplet') hiddenTriplets.add(sourceId);
+        }
+      }
+    };
+    for (const id of collapsedCategoryNodes) hideCategoryDescendants(id);
 
     for (const link of graph.links) {
       const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
@@ -740,7 +794,16 @@ export default function DirectedGraph({
       .on('dblclick', (event, d) => {
         event.stopPropagation();
         if (nodeKinds?.get(d.id) === 'cluster') onClusterDoubleClick(d.id);
-        else if (nodeKinds?.get(d.id) === 'category') onCategoryDoubleClick(d.id);
+        else if (nodeKinds?.get(d.id) === 'category') {
+          const childCategoryIds = graph.links.flatMap(link => {
+            const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+            const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+            if (sourceId === d.id && nodeKinds?.get(targetId) === 'category') return [targetId];
+            if (targetId === d.id && nodeKinds?.get(sourceId) === 'category') return [sourceId];
+            return [];
+          });
+          onCategoryDoubleClick(d.id, childCategoryIds);
+        }
       })
       .call(
         d3.drag<SVGGElement, Node>()
@@ -809,6 +872,9 @@ export default function DirectedGraph({
           lines.push(`${mapping.nodeColorField}: ${d.colorKey}`);
         }
         lines.push(`in: ${d.inDegree} · out: ${d.outDegree}`);
+        for (const detail of tooltipDetailsRef.current?.get(d.id) ?? []) {
+          lines.push(`<strong>${escapeHTML(detail.label)}:</strong> ${escapeHTML(detail.value).replace(/\n/g, '<br/>')}`);
+        }
         if (mapping.nodeSizeField && fieldsByName.get(mapping.nodeSizeField)?.type === 'number') {
           lines.push(`${mapping.nodeSizeField}: ${d.sizeValue}`);
         }

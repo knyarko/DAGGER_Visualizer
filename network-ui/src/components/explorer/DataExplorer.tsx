@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FileUpload from './FileUpload';
 import FieldMapper from './FieldMapper';
 import FilterPanel from './FilterPanel';
-import DirectedGraph, { type DaggerNodeKind, type NodeThumbnail } from './DirectedGraph';
+import DirectedGraph, { type DaggerNodeKind, type NodeThumbnail, type NodeTooltipDetail } from './DirectedGraph';
 import NodeMedia from './NodeMedia';
 import { daggerNodeHandling, daggerNodeMedia, daggerVisibleSubgraph, daggerWarningTags, isCategoryNode, isClusterNode, isTripletNode, type DatasetOption } from '../../lib/parseData';
 import type { DaggerNode } from '../../types';
@@ -200,12 +200,15 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     setExpandedCategoryNodes(new Set());
   }, []);
 
-  const toggleCategoryMessages = useCallback((id: string) => {
+  const toggleCategoryMessages = useCallback((id: string, childCategoryIds: string[] = []) => {
     if (hideAllMessages) {
       setExpandedCategoryNodes(prev => {
         const next = new Set(prev);
         if (next.has(id)) next.delete(id);
-        else next.add(id);
+        else {
+          next.add(id);
+          childCategoryIds.forEach(childId => next.delete(childId));
+        }
         return next;
       });
       return;
@@ -213,8 +216,10 @@ export default function DataExplorer({ onSwitchMode }: Props) {
 
     setCollapsedCategoryNodes(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        childCategoryIds.forEach(childId => next.add(childId));
+      } else next.add(id);
       return next;
     });
   }, [hideAllMessages]);
@@ -624,6 +629,59 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   //
   // Recomputed whenever the threshold, the override or that reveal changes, on
   // a map the size of the node count. The DAGGER fixture is 118 nodes.
+  // Node hover content: preserve the source field names while surfacing the
+  // triplet relationship, message text, modality, and text/transcript fields.
+  const nodeTooltipDetails = useMemo<Map<string, NodeTooltipDetail[]> | null>(() => {
+    if (!dagger) return null;
+    const details = new Map<string, NodeTooltipDetail[]>();
+    const preferredKeys = /^(subject|predicate|object|modality|message|message_text|msg_text|text|triplet_text)$/i;
+    const contentKey = /(transcript|caption|ocr|speech|audio_text|image_text|video_text|background_sound|translation|description|message|msg_text|triplet_text)/i;
+    const asText = (value: unknown): string => {
+      if (typeof value === 'string') return value.trim();
+      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+      if (Array.isArray(value)) return value.map(asText).filter(Boolean).join(' | ');
+      return '';
+    };
+    for (const [id, node] of dagger.nodesById) {
+      const record = node as unknown as Record<string, unknown>;
+      const nodeDetails: NodeTooltipDetail[] = [];
+      const seen = new Set<string>();
+      const subject = asText(record.subject);
+      const predicate = asText(record.predicate);
+      const object = asText(record.object);
+      if (subject && object) nodeDetails.push({ label: 'Subject → Object', value: `${subject} → ${object}` });
+      if (predicate) nodeDetails.push({ label: 'Predicate', value: predicate });
+      if (subject) seen.add('subject');
+      if (predicate) seen.add('predicate');
+      if (object) seen.add('object');
+      if (asText(record.modality)) seen.add('modality');
+      for (const [key, value] of Object.entries(record)) {
+        if (!preferredKeys.test(key) && !contentKey.test(key)) continue;
+        const text = asText(value);
+        if (!text || seen.has(key.toLowerCase())) continue;
+        nodeDetails.push({ label: key.replace(/_/g, ' '), value: text });
+        seen.add(key.toLowerCase());
+      }
+      for (const media of daggerNodeMedia(node)) {
+        const mediaRecord = media as unknown as Record<string, unknown>;
+        const channel = asText(mediaRecord.channel);
+        if (channel) {
+          if (!seen.has('modality')) {
+            nodeDetails.push({ label: 'modality', value: channel });
+            seen.add('modality');
+          }
+        }
+        for (const [key, value] of Object.entries(mediaRecord)) {
+          if (!contentKey.test(key)) continue;
+          const text = asText(value);
+          if (text) nodeDetails.push({ label: `${channel || 'media'} ${key.replace(/_/g, ' ')}`, value: text });
+        }
+      }
+      if (nodeDetails.length > 0) details.set(id, nodeDetails);
+    }
+    return details.size > 0 ? details : null;
+  }, [dagger]);
+
   const nodeThumbnails = useMemo<Map<string, NodeThumbnail> | null>(() => {
     if (!dagger) return null;
     const thumbs = new Map<string, NodeThumbnail>();
@@ -753,14 +811,6 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     return (
       <div className="relative">
         <FileUpload onLoaded={handleLoaded} />
-        {onSwitchMode && (
-          <button
-            onClick={onSwitchMode}
-            className="absolute top-4 right-4 text-xs text-gray-400 hover:text-white px-3 py-1.5 border border-gray-700 rounded"
-          >
-            Open Epstein viewer →
-          </button>
-        )}
       </div>
     );
   }
@@ -772,15 +822,6 @@ export default function DataExplorer({ onSwitchMode }: Props) {
         <div className="p-3 border-b border-gray-800">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-sm font-bold">Network Explorer</h1>
-            {onSwitchMode && (
-              <button
-                onClick={onSwitchMode}
-                className="text-[10px] text-gray-400 hover:text-white"
-                title="Switch to original Epstein viewer"
-              >
-                Epstein →
-              </button>
-            )}
           </div>
           <div className="text-xs text-gray-400 truncate" title={sourceFileName}>
             📄 {sourceFileName}
@@ -1418,6 +1459,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           nodeKinds={nodeKinds}
           litNodes={litNodes}
           nodeThumbnails={nodeThumbnails}
+          nodeTooltipDetails={nodeTooltipDetails}
           spread={spread}
           edgeLabelMode={edgeLabelMode}
           hideAllTriplets={hideAllTriplets}
