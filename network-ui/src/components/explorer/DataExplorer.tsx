@@ -17,24 +17,6 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const CHAIN_MAX_PATHS = 200;
 
-// ── AA043: the media root is CONFIGURATION, not a viewer setting ─────────────
-//
-// It used to be a text box in the sidebar, persisted in `localStorage` under
-// `mediaBaseUrl`. Rusty's call: "Giving the user the option to give the base
-// url is a bad design. This should be an internal configuration." The control
-// is gone and the roots now come from `lib/mediaRoots.json` as a LIST, tried in
-// order, because one graph file can carry paths from more than one collection.
-//
-// AA050 went further, on Rusty's word "please make it work without use of
-// urls": those roots are FOLDERS ON DISK now, not URLs, and Vite serves each
-// one so the page can fetch it same-origin. Nothing here changes but the name —
-// `lib/mediaConfig.ts` still hands this file the list to pass down.
-//
-// Nothing here reads `localStorage.mediaBaseUrl` any more, and nothing writes
-// or clears it. A value a viewer stored in an earlier build is left exactly
-// where it is — it is simply no longer consulted. We do not delete a user's
-// data to tidy up after ourselves.
-
 interface Props {
   onSwitchMode?: () => void;
 }
@@ -127,23 +109,6 @@ function applyFilters(
   });
 }
 
-/**
- * What a node IS, for AA047's "highlight its other occurrences".
- *
- * Rusty: "that same color should highlight across other branches based on its
- * triplet_id or cluster_id". The pipeline places one cluster once per category
- * it carries, so a single cluster_id becomes several node ids
- * (`…_0001`, `…_0002`, …) sitting under different parents. The same is true of a
- * triplet that belongs to more than one category. Those — and only those — are
- * "other occurrences" of the thing you clicked.
- *
- * The kind is part of the key on purpose. A triplet node also carries the
- * cluster_id of the cluster it belongs to, so matching on the bare id would
- * light every sibling triplet in that cluster as well, and a sibling is a
- * different triplet, not another occurrence of this one. Returns null for a
- * category node (no such id) and for any node whose id is missing — the clicked
- * node itself is still lit; it simply has no occurrences to light.
- */
 function nodeIdentity(node: DaggerNode | undefined | null): string | null {
   if (isTripletNode(node)) {
     const id = node.triplet_id;
@@ -163,7 +128,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   const [mapping, setMapping] = useState<VisualMapping | null>(null);
   const [filters, setFilters] = useState<FilterMap>({});
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const [showMapper, setShowMapper] = useState(true);
+  const [showMapper, setShowMapper] = useState(false);
   const [showSourcePicker, setShowSourcePicker] = useState(false);
   const [kCore, setKCore] = useState(0);
   const [chainDepth, setChainDepth] = useState(0);
@@ -269,51 +234,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   // yesterday's "show me everything" to a new session would quietly undo the
   // safe default. Every session starts closed.
   const [revealThreshold, setRevealThreshold] = useState(0);
-
-  // ── AA048: Hide All Content / Reveal All Content ───────────────────────────
-  // Rusty: "Add a Hide All Content button and a Reveal all Content Button. These
-  // will override the slider. But the slider with auto unselect them upon
-  // movement."
-  //
-  // ONE piece of state for BOTH buttons, not one boolean each. Two booleans can
-  // represent "hide and reveal are both on", which is not a state that exists,
-  // and every reader would then have to carry a rule for what that means. With
-  // one value the three states Rusty described — Hide All, Reveal All, and the
-  // threshold — are the only three values it can hold, and "exactly one is in
-  // force" is true by construction rather than by discipline.
-  //
-  // null means the threshold is deciding. It is the default for the same reason
-  // `revealThreshold` starts at 0.00: a viewer who has touched nothing gets the
-  // pipeline's own answer, not an override they did not ask for.
-  //
-  // Not persisted, like the threshold beside it and for the same reason.
   const [contentOverride, setContentOverride] = useState<ContentOverride | null>(null);
-
-  // ── AA052: has the viewer revealed the OPEN record in the panel? ───────────
-  // Rusty: "I do want an image hover. And of course it will have the blur for
-  // it as well." — and the blur has to follow the same reveal the panel does,
-  // or hovering a node the viewer has deliberately left concealed would show
-  // them the thing they declined to look at.
-  //
-  // ONE boolean, not a set of revealed ids, because the panel's reveal is
-  // per-node by construction: `NodeMedia` is keyed by the selected node and the
-  // override in force, so at most ONE record can be revealed at a time and it
-  // is always the open one. A set would be able to represent states the panel
-  // cannot produce, and the tooltip would then be answering from a model of the
-  // panel rather than from the panel.
-  //
-  // `NodeMedia` keeps the state and reports it here; the remount that already
-  // closes a reveal is what resets this too, so there is no second reset rule
-  // to keep in step. When nothing is selected the panel is not mounted and this
-  // value is stale — harmless, because it is only ever consulted for the node
-  // that IS selected, and a stale `true` therefore matches no node at all.
   const [revealedInPanel, setRevealedInPanel] = useState(false);
-
-  // Moving the slider hands control back to the threshold. This is the ONLY
-  // place the slider's value changes, so the clearing cannot be forgotten at
-  // some other call site — there is no other call site. A drag that ends on the
-  // value it started from fires no change event and correctly clears nothing:
-  // "upon movement" is movement of the value, not of the mouse.
   const setThresholdFromSlider = useCallback((value: number) => {
     setRevealThreshold(value);
     setContentOverride(null);
@@ -334,12 +256,6 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     });
   }, []);
 
-  // ── AA046: the modality filter ─────────────────────────────────────────────
-  // Rusty: "there should be a modality filter so only triplets of that modality
-  // are visible." Same shape as the tag filter above and for the same reasons:
-  // a positive selection, empty by default, and the vocabulary comes from the
-  // loaded file — `text`, `text+image`, `audio`, … are the pipeline's values and
-  // are never hard-coded here.
   const [activeModalities, setActiveModalities] = useState<Set<string>>(new Set());
 
   const toggleModality = useCallback((modality: string) => {
@@ -486,7 +402,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     setMapping(suggestMapping(recommended.dataset.fields));
     setFilters({});
     setSelectedNode(null);
-    setShowMapper(true);
+    // Mapping stays collapsed on load; the viewer opens it to adjust.
   };
 
   // When user switches between candidate arrays in the same file, reset mapping + filters
