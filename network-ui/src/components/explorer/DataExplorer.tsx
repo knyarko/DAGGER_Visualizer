@@ -4,7 +4,7 @@ import FieldMapper from './FieldMapper';
 import FilterPanel from './FilterPanel';
 import DirectedGraph, { type DaggerNodeKind, type NodeThumbnail, type NodeTooltipDetail } from './DirectedGraph';
 import NodeMedia from './NodeMedia';
-import { daggerNodeHandling, daggerNodeMedia, daggerVisibleSubgraph, daggerWarningTags, isCategoryNode, isClusterNode, isTripletNode, type DatasetOption } from '../../lib/parseData';
+import { daggerNodeHandling, daggerNodeMedia, daggerNodeTier, daggerVisibleSubgraph, daggerWarningTags, isCategoryNode, isClusterNode, isTripletNode, type DatasetOption } from '../../lib/parseData';
 import type { DaggerNode } from '../../types';
 import { MEDIA_ROOTS, mediaCandidates } from '../../lib/mediaConfig';
 import { isRecordConcealed, type ContentOverride } from '../../lib/contentBlur';
@@ -571,6 +571,20 @@ export default function DataExplorer({ onSwitchMode }: Props) {
       else if (isCategoryNode(node)) kinds.set(id, 'category');
     }
     return kinds;
+  }, [dagger]);
+
+  // Category depth, for size. `nodeKinds` answers "what is this node" and
+  // collapses H000/H001/… into one 'category'; this keeps the level, which is
+  // what the hierarchy ramp needs. Cluster and triplet nodes have no tier and
+  // are absent from the map, so their size is left to the degree scale.
+  const nodeTiers = useMemo<Map<string, number> | null>(() => {
+    if (!dagger) return null;
+    const tiers = new Map<string, number>();
+    for (const [id, node] of dagger.nodesById) {
+      const t = daggerNodeTier(node);
+      if (t !== null) tiers.set(id, t);
+    }
+    return tiers;
   }, [dagger]);
 
   // ── AA047: what lights up when you click ───────────────────────────────────
@@ -1457,6 +1471,7 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           nodeOpacity={nodeOpacity}
           nodeLabels={nodeLabels}
           nodeKinds={nodeKinds}
+          nodeTiers={nodeTiers}
           litNodes={litNodes}
           nodeThumbnails={nodeThumbnails}
           nodeTooltipDetails={nodeTooltipDetails}

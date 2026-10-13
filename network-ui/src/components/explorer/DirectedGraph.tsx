@@ -84,6 +84,11 @@ interface Props {
    */
   nodeKinds?: Map<string, DaggerNodeKind> | null;
   /**
+   * Category node id → its depth (H000 → 0, H001 → 1, …). Only category nodes
+   * appear; cluster and triplet nodes have no tier and keep the degree size.
+   */
+  nodeTiers?: Map<string, number> | null;
+  /**
    * The node ids to light up in the selection colour: the node actually clicked
    * plus every OTHER VISIBLE node that is the same thing — the same `triplet_id`
    * on a triplet, the same `cluster_id` on a cluster. A cluster placed under
@@ -355,6 +360,7 @@ export default function DirectedGraph({
   nodeOpacity = null,
   nodeLabels = null,
   nodeKinds = null,
+  nodeTiers = null,
   litNodes = null,
   nodeThumbnails = null,
   nodeTooltipDetails = null,
@@ -612,6 +618,28 @@ export default function DirectedGraph({
     return d3.scaleSqrt().domain([0, Math.max(max, 1)]).range([6, 30]);
   }, [graph.nodes]);
 
+  // Category nodes are sized by hierarchy depth instead of degree: a category
+  // that owns subcategories reads bigger than the ones it owns. The top level
+  // differs per file (H003 in one, H023 in another), so the ramp is derived
+  // from the levels actually present rather than from a fixed table. It starts
+  // at the degree scale's ceiling, so no category is ever smaller than a leaf.
+  const nodeRadius = useMemo(() => {
+    const present = graph.nodes
+      .map(n => nodeTiers?.get(n.id))
+      .filter((t): t is number => t !== undefined);
+    const maxTier = present.length ? Math.max(...present) : 0;
+
+    const FLOOR = 30; // top of the degree scale's range
+    const CEIL = 76;
+    const step = maxTier > 0 ? (CEIL - FLOOR) / maxTier : 0;
+
+    return (n: Node) => {
+      const tier = nodeTiers?.get(n.id);
+      if (tier === undefined) return sizeScale(n.sizeValue);
+      return FLOOR + step * tier;
+    };
+  }, [graph.nodes, nodeTiers, sizeScale]);
+
   const weightScale = useMemo(() => {
     const max = d3.max(graph.links, l => l.weight) ?? 1;
     return d3.scaleLinear().domain([0, Math.max(max, 1)]).range([0.5, 6]);
@@ -709,7 +737,7 @@ export default function DirectedGraph({
       .force('link', d3.forceLink<Node, Link>(displayGraph.links).id(d => d.id).distance(BASE_LINK_DISTANCE * initialSpread).strength(0.5))
       .force('charge', d3.forceManyBody<Node>().strength(BASE_CHARGE_STRENGTH * initialSpread))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide<Node>().radius(n => sizeScale(n.sizeValue) + 4));
+      .force('collision', d3.forceCollide<Node>().radius(n => nodeRadius(n) + 4));
     simRef.current = sim;
 
     // Keep the existing graph visually anchored while newly revealed triplets
@@ -824,7 +852,7 @@ export default function DirectedGraph({
       );
 
     nodeSel.append('path')
-      .attr('d', n => nodeGlyph(nodeKinds?.get(n.id), sizeScale(n.sizeValue)))
+      .attr('d', n => nodeGlyph(nodeKinds?.get(n.id), nodeRadius(n)))
       .attr('fill', n => nodeFill(n.id, n.colorKey))
       .attr('stroke', NODE_RING)
       .attr('stroke-width', 1);
@@ -837,7 +865,7 @@ export default function DirectedGraph({
     nodeSel.append('text')
       .text(n => displayLabel(n.id))
       .attr('text-anchor', 'middle')
-      .attr('dy', n => sizeScale(n.sizeValue) + 11)
+      .attr('dy', n => nodeRadius(n) + 11)
       .attr('font-size', 10)
       .attr('fill', '#e5e7eb')
       .attr('paint-order', 'stroke')
@@ -960,7 +988,7 @@ export default function DirectedGraph({
           const dx = (t.x ?? 0) - (s.x ?? 0);
           const dy = (t.y ?? 0) - (s.y ?? 0);
           const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const r = sizeScale(t.sizeValue) + ARROW_LEN + 1;
+          const r = nodeRadius(t) + ARROW_LEN + 1;
           // Safety: don't let the line invert when nodes overlap
           const offset = Math.min(r, dist);
           return (t.x ?? 0) - (dx / dist) * offset;
@@ -971,7 +999,7 @@ export default function DirectedGraph({
           const dx = (t.x ?? 0) - (s.x ?? 0);
           const dy = (t.y ?? 0) - (s.y ?? 0);
           const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const r = sizeScale(t.sizeValue) + ARROW_LEN + 1;
+          const r = nodeRadius(t) + ARROW_LEN + 1;
           const offset = Math.min(r, dist);
           return (t.y ?? 0) - (dy / dist) * offset;
         });
@@ -1007,7 +1035,7 @@ export default function DirectedGraph({
       simRef.current = null;
       tooltip.remove();
     };
-  }, [displayGraph, colorScale, nodeFill, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels, onClusterDoubleClick, onCategoryDoubleClick]); // Kept edgeLabelMode
+  }, [displayGraph, colorScale, nodeFill, sizeScale, nodeRadius, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels, onClusterDoubleClick, onCategoryDoubleClick]); // Kept edgeLabelMode
   // selectedNode handled by a separate effect below to avoid restarting the simulation on selection
 
   // Spread control — retune the existing simulation's link/charge forces
