@@ -12,16 +12,6 @@ interface SampleDataset {
 // BASE_URL is '/' in dev and '/<repo>/' under GitHub Pages, so samples resolve in both
 const BASE = import.meta.env.BASE_URL;
 
-// ── THE SAMPLE BUTTONS ──────────────────────────────────────────────────────
-//   The first two entries point at files that are NOT in this checkout, so both
-//   404 on click (B024). They are left exactly as they are ON PURPOSE: the files
-//   are missing, not the buttons, and deleting a button would hide the problem
-//   instead of fixing it. Whether they stay is Rusty's call, not this file's.
-//
-//   The third (AA042) points at `public/samples/Test_Graph_Viz.json`, which IS
-//   in this checkout. Its blurb is two short sentences, deliberately: it has to
-//   say "this is a test" and stop, and it is the one thing a viewer needs to
-//   know before reading a handling score off it.
 const SAMPLES: SampleDataset[] = [
   {
     label: 'Crisis MMD Causal Triplets (JSON)',
@@ -34,9 +24,9 @@ const SAMPLES: SampleDataset[] = [
     description: 'This dataset is a synthetic dataset that is used to demonstrate the timeline view of the network explorer.',
   },
   {
-    label: 'DAGGER Test Graph (JSON)',
+    label: 'Ukraine Dataset (JSON)',
     url: `${BASE}samples/Test_Graph_Viz.json`,
-    description: 'A test fixture for exercising the viewer. Its handling values are simulated, not real scores.',
+    description: 'Scrubbed reporting on the Ukraine / Russia war, extracted into triplets. This is live real-world data.',
   },
 ];
 

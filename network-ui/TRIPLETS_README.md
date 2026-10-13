@@ -54,6 +54,33 @@ Node **size** and **color**, and edge **width** and **labels**, are all driven b
 
 ---
 
+## Node legend — what the shapes and colors mean
+
+For DAGGER-shaped files, a **Node legend** sits at the top of the left panel. The graph
+has three kinds of node, and each gets its own shape *and* its own color:
+
+| Glyph | Node | Color | What it is |
+|---|---|---|---|
+| ◆ diamond | **Triplet** | light red | one extracted *subject → predicate → object* fact |
+| ■ square | **Message** | purple | the source record (tweet, report, post) a triplet came from |
+| ⬢ hexagon | **Category** | grey | the topic headings the messages are filed under |
+
+The shape and the color always say the same thing, so you can read the graph either way.
+If you set **Node color by** in the Mapping panel, your choice wins and the legend notes
+that the tier colors have been overridden — the shapes still show the tier.
+
+### Why some nodes are bigger
+
+Triplets and messages are sized by **how connected they are** — the more links a node has,
+the bigger it draws.
+
+Categories are sized differently: by **how high up the hierarchy they sit**. A top-level
+category draws largest, the categories it contains draw smaller, and so on down. Every
+category is drawn at least as big as the busiest triplet, so the structure of the data
+stays visible even in a crowded graph. The step sizes come from the levels actually
+present in your file, so a shallow hierarchy is not stretched to fill a fixed scale.
+
+---
 ## Controls
 
 ### Layout → Spread
@@ -80,6 +107,42 @@ As the cursor advances, each node **appears on its event date**, stays fully vis
 
 A slider (k = 0–5) that strips away weakly-connected nodes. At k = 1 it removes isolated nodes; higher values iteratively peel off everything that isn't part of a denser, multiply-connected core. This is the quickest way to cut a noisy graph down to its structurally important backbone. The panel shows how many edges were pruned. k = 0 turns it off.
 
+### Triplets & Messages (DAGGER files)
+
+Large graphs get unreadable fast, so you can collapse the detail and open only the part
+you want.
+
+- **Triplets → Hide All** removes every triplet, leaving the messages and categories.
+  **Show All** puts them back.
+- **Messages → Hide All** removes the message nodes too, leaving just the category skeleton.
+- **Double-click a Message node** to expand or collapse just that message’s triplets.
+- **Double-click a Category node** to expand or collapse just that category’s messages.
+
+So the usual way to explore a big file is: Hide All, find the category you care about,
+and double-click your way down into it.
+
+### Handling → how much to reveal (DAGGER files)
+
+Some records carry distressing images or text. Each one has a sensitivity score from the
+pipeline, and the **Reveal up to sensitivity** slider decides how much is shown by default:
+at 0.00 only what is certainly safe is visible, and raising it reveals progressively more.
+Anything above the line stays concealed until you reveal that one node yourself.
+
+Two buttons override the slider outright:
+
+- **Hide All Content** — everything concealed, regardless of score
+- **Reveal All Content** — everything shown, regardless of score
+
+While an override is in force the slider dims and a banner says which one is active. Touching
+the slider hands control back to it. There is also a **warning tag** filter here, for keeping
+only the records carrying particular warnings.
+
+### Modality (DAGGER files)
+
+Triplets can come from text, from an image, from audio, or from a combination. The
+**Modality** chips list whatever modalities your file actually contains, with a count for
+each. Select one or more to keep only those triplets and the branches above them; with
+nothing selected, nothing is narrowed.
 ### Filters (per field)
 
 Every column in your data gets its own filter, with the right control chosen automatically for the field type:
@@ -171,6 +234,38 @@ npm run dev
 
 Then open the URL Vite prints (typically http://localhost:5173/).
 
+### Showing images and audio (media previews)
+
+The app can show the picture or play the audio clip a record came from, but those files
+live on your own machine and it has to be told where. Open this file:
+
+```
+network-ui/src/lib/mediaRoots.json
+```
+
+and list the folders holding your dataset’s media:
+
+```json
+[
+  "C:/Users/Username/Desktop/my_dataset/images",
+  "C:/Users/Username/Desktop/my_dataset/audio"
+]
+```
+
+Then save and refresh the page. A few things worth knowing:
+
+- Use **full paths with forward slashes** — these work on Windows too. If you paste a path
+  with backslashes you must double each one (`C:\\Users\\...`), because JSON reads a single
+  `\` as an escape character.
+- Folders are tried **in order**, so put the one holding most of your media first.
+- List as many as you need. Images and audio can sit in separate folders.
+- `mediaRoots.example.json`, beside it, is a template you can copy — but the app only ever
+  reads `mediaRoots.json`, so make sure that is the file you edit.
+- If a preview still won’t load, the card names every folder it searched. That is almost
+  always a typo or a folder one level too high or too low.
+
+Media previews need the local server, so they work under `npm run dev` and `npm run preview`.
+The public web build has no access to your disk and shows a message instead.
 Other scripts:
 
 | Command | What it does |
