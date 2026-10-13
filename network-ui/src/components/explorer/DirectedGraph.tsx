@@ -18,7 +18,7 @@ export type DaggerNodeKind = 'triplet' | 'cluster' | 'category';
  * as well."
  *
  * IMAGE ONLY. The tooltip is an HTML surface with `pointer-events: none` that
- * is cleared on `mouseout`, so an `<audio controls>` or a `<video controls>`
+ * is cleared on `mouseout`, so an `<audio controls>` or a `<video controls`
  * in it could never be operated and a reveal button in it could never be
  * clicked. Dana established that in sprint 1 and nothing has changed. A node
  * with no image — a cluster, a category, an audio-only triplet — is simply
@@ -30,6 +30,11 @@ export type DaggerNodeKind = 'triplet' | 'cluster' | 'category';
  * concealment — there is no second copy of that rule here to drift from
  * `NodeMedia`'s.
  */
+export interface NodeTooltipDetail {
+  label: string;
+  value: string;
+}
+
 export interface NodeThumbnail {
   /** Every address to try, in configured-root order, from the same joiner the
    *  media card uses (`mediaCandidates` in `lib/mediaConfig.ts`). The first that
@@ -79,6 +84,11 @@ interface Props {
    */
   nodeKinds?: Map<string, DaggerNodeKind> | null;
   /**
+   * Category node id → its depth (H000 → 0, H001 → 1, …). Only category nodes
+   * appear; cluster and triplet nodes have no tier and keep the degree size.
+   */
+  nodeTiers?: Map<string, number> | null;
+  /**
    * The node ids to light up in the selection colour: the node actually clicked
    * plus every OTHER VISIBLE node that is the same thing — the same `triplet_id`
    * on a triplet, the same `cluster_id` on a cluster. A cluster placed under
@@ -100,8 +110,26 @@ interface Props {
    * much worse bug than the one this prop fixes.
    */
   nodeThumbnails?: Map<string, NodeThumbnail> | null;
+  /** Additional DAGGER content to display in each node's hover tooltip. */
+  nodeTooltipDetails?: Map<string, NodeTooltipDetail[]> | null;
   /** Multiplier on link distance + charge strength. 1.0 = default packing. */
   spread?: number;
+  /** Hide every triplet unless its message cluster is explicitly expanded. */
+  hideAllTriplets?: boolean;
+  /** Message cluster node ids whose triplets are collapsed. */
+  collapsedClusterNodes?: Set<string>;
+  /** Message cluster node ids whose triplets are expanded while Hide All is active. */
+  expandedClusterNodes?: Set<string>;
+  /** Toggle a message cluster's triplets on double-click. */
+  onClusterDoubleClick?: (id: string) => void;
+  /** Hide every message cluster unless its category is explicitly expanded. */
+  hideAllMessages?: boolean;
+  /** Category node ids whose message clusters are collapsed. */
+  collapsedCategoryNodes?: Set<string>;
+  /** Category node ids whose message clusters are expanded while Hide All is active. */
+  expandedCategoryNodes?: Set<string>;
+  /** Toggle a category's message clusters on double-click. */
+  onCategoryDoubleClick?: (id: string, childCategoryIds?: string[]) => void;
   /**
    * Edge label visibility mode.
    *   · 'auto' — show when total edge count ≤ density cap, hide otherwise
@@ -142,8 +170,8 @@ const PALETTE = d3.schemeTableau10;
 // within that blue highlight."
 //
 // So there are two independent jobs and one constraint. The KIND colours say
-// what a node is; the SELECTION colour says what you clicked and where else
-// that same thing appears. Neither may be confusable with the other, and
+// what a node is; the SELECTION colour says what you clicked and where else that
+// same thing appears. Neither may be confusable with the other, and
 // neither may be confusable with the cyan-blue this graph already uses for a
 // selected node's ring, its edges and its arrowheads.
 //
@@ -168,6 +196,27 @@ const SELECTION_FILL = '#a3e635';   // lime-400
 const SELECTION_RING = '#06b6d4';
 /** The ring every other node wears. */
 const NODE_RING = '#fff';
+
+// Node glyphs — shape is independent of node colour and size.
+function nodeGlyph(kind: DaggerNodeKind | undefined, radius: number): string {
+  const size = radius * 1.15;
+
+  switch (kind) {
+    case 'triplet':
+      return `M0,${-size} L${size},0 L0,${size} L${-size},0 Z`;
+
+    case 'cluster':
+      return `M${-size},${-size} H${size} V${size} H${-size} Z`;
+
+    case 'category': {
+      const h = size * 0.866;
+      return `M${-size / 2},${-h} L${size / 2},${-h} L${size},0 L${size / 2},${h} L${-size / 2},${h} L${-size},0 Z`;
+    }
+
+    default:
+      return `M0,${-radius} A${radius},${radius} 0 1,1 0,${radius} A${radius},${radius} 0 1,1 0,${-radius} Z`;
+  }
+}
 
 // ── AA052: the hover thumbnail ───────────────────────────────────────────────
 //
@@ -311,15 +360,27 @@ export default function DirectedGraph({
   nodeOpacity = null,
   nodeLabels = null,
   nodeKinds = null,
+  nodeTiers = null,
   litNodes = null,
   nodeThumbnails = null,
+  nodeTooltipDetails = null,
   spread = 1.0,
   edgeLabelMode = 'auto',
+  hideAllTriplets = false,
+  collapsedClusterNodes = new Set<string>(),
+  expandedClusterNodes = new Set<string>(),
+  onClusterDoubleClick = () => {},
+  hideAllMessages = false,
+  collapsedCategoryNodes = new Set<string>(),
+  expandedCategoryNodes = new Set<string>(),
+  onCategoryDoubleClick = () => {},
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   // Stable handle to the running simulation so we can retune forces without
   // rebuilding the whole SVG when the spread slider moves.
   const simRef = useRef<d3.Simulation<Node, Link> | null>(null);
+  const nodePositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const zoomTransformRef = useRef<d3.ZoomTransform | null>(null);
   const spreadRef = useRef(spread);
   spreadRef.current = spread;
   // AA052. Same trick as `spreadRef` above, for the same reason: the tooltip
@@ -329,6 +390,8 @@ export default function DirectedGraph({
   // and not a rebuild of the simulation — and keeps the CURRENT concealment in
   // force at the moment of the hover, which is the whole safety requirement.
   const thumbnailsRef = useRef(nodeThumbnails);
+  const tooltipDetailsRef = useRef(nodeTooltipDetails);
+  tooltipDetailsRef.current = nodeTooltipDetails;
   // Written in an effect, not during render: React forbids the second, and an
   // effect is early enough regardless — it runs on commit, before any hover
   // the new value has to answer for.
@@ -414,6 +477,123 @@ export default function DirectedGraph({
     return { nodes: Array.from(nodeMap.values()), links };
   }, [rows, mapping, fieldsByName]);
 
+  const displayGraph = useMemo(() => {
+    const hiddenMessages = new Set<string>();
+    const hiddenTriplets = new Set<string>();
+
+    if (hideAllMessages) {
+      for (const node of graph.nodes) {
+        if (nodeKinds?.get(node.id) === 'cluster') hiddenMessages.add(node.id);
+      }
+    }
+
+    // A collapsed category hides every descendant tier. When it is expanded,
+    // its direct child categories can remain visible while their own children
+    // stay collapsed, allowing the hierarchy to open one level at a time.
+    const categoryChildren = new Map<string, Set<string>>();
+    const categoryDescendants = new Map<string, Set<string>>();
+    for (const link of graph.links) {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      if (nodeKinds?.get(sourceId) === 'category' && nodeKinds?.get(targetId) === 'category') {
+        if (!categoryChildren.has(sourceId)) categoryChildren.set(sourceId, new Set());
+        categoryChildren.get(sourceId)!.add(targetId);
+      }
+    }
+    const hideCategoryDescendants = (rootId: string) => {
+      const pending = [...(categoryChildren.get(rootId) ?? [])];
+      const visited = new Set<string>();
+      visited.add(rootId);
+      while (pending.length) {
+        const childId = pending.pop()!;
+        if (visited.has(childId)) continue;
+        visited.add(childId);
+        if (nodeKinds?.get(childId) === 'category') {
+          hiddenMessages.add(childId);
+          pending.push(...(categoryChildren.get(childId) ?? []));
+        }
+      }
+      for (const link of graph.links) {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        if (visited.has(sourceId) && nodeKinds?.get(targetId) === 'cluster') hiddenMessages.add(targetId);
+        if (visited.has(targetId) && nodeKinds?.get(sourceId) === 'cluster') hiddenMessages.add(sourceId);
+      }
+      for (const clusterId of hiddenMessages) {
+        if (nodeKinds?.get(clusterId) !== 'cluster') continue;
+        for (const link of graph.links) {
+          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+          if (sourceId === clusterId && nodeKinds?.get(targetId) === 'triplet') hiddenTriplets.add(targetId);
+          if (targetId === clusterId && nodeKinds?.get(sourceId) === 'triplet') hiddenTriplets.add(sourceId);
+        }
+      }
+    };
+    for (const id of collapsedCategoryNodes) hideCategoryDescendants(id);
+
+    for (const link of graph.links) {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      const sourceKind = nodeKinds?.get(sourceId);
+      const targetKind = nodeKinds?.get(targetId);
+
+      if (sourceKind === 'category' && targetKind === 'cluster') {
+        if (hideAllMessages && expandedCategoryNodes.has(sourceId)) hiddenMessages.delete(targetId);
+        if (!hideAllMessages && collapsedCategoryNodes.has(sourceId)) hiddenMessages.add(targetId);
+      }
+      if (targetKind === 'category' && sourceKind === 'cluster') {
+        if (hideAllMessages && expandedCategoryNodes.has(targetId)) hiddenMessages.delete(sourceId);
+        if (!hideAllMessages && collapsedCategoryNodes.has(targetId)) hiddenMessages.add(sourceId);
+      }
+    }
+
+    if (hideAllTriplets) {
+      for (const node of graph.nodes) {
+        if (nodeKinds?.get(node.id) === 'triplet') hiddenTriplets.add(node.id);
+      }
+
+      for (const link of graph.links) {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        if (!hiddenMessages.has(sourceId) && expandedClusterNodes.has(sourceId) && nodeKinds?.get(targetId) === 'triplet') {
+          hiddenTriplets.delete(targetId);
+        }
+        if (!hiddenMessages.has(targetId) && expandedClusterNodes.has(targetId) && nodeKinds?.get(sourceId) === 'triplet') {
+          hiddenTriplets.delete(sourceId);
+        }
+      }
+    } else {
+      for (const link of graph.links) {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        if (collapsedClusterNodes.has(sourceId) && nodeKinds?.get(targetId) === 'triplet') {
+          hiddenTriplets.add(targetId);
+        }
+        if (collapsedClusterNodes.has(targetId) && nodeKinds?.get(sourceId) === 'triplet') {
+          hiddenTriplets.add(sourceId);
+        }
+      }
+    }
+
+    for (const link of graph.links) {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      if (hiddenMessages.has(sourceId) && nodeKinds?.get(targetId) === 'triplet') hiddenTriplets.add(targetId);
+      if (hiddenMessages.has(targetId) && nodeKinds?.get(sourceId) === 'triplet') hiddenTriplets.add(sourceId);
+    }
+
+    if (hiddenMessages.size === 0 && hiddenTriplets.size === 0) return graph;
+
+    const nodes = graph.nodes.filter(node => !hiddenMessages.has(node.id) && !hiddenTriplets.has(node.id));
+    const links = graph.links.filter(link => {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      return !hiddenMessages.has(sourceId) && !hiddenMessages.has(targetId) && !hiddenTriplets.has(sourceId) && !hiddenTriplets.has(targetId);
+    });
+
+    return { nodes, links };
+  }, [graph, nodeKinds, hideAllTriplets, collapsedClusterNodes, expandedClusterNodes, hideAllMessages, collapsedCategoryNodes, expandedCategoryNodes]);
+
   // Build color scale once per change in graph
   const colorScale = useMemo(() => {
     if (!mapping.nodeColorField) return null;
@@ -437,6 +617,28 @@ export default function DirectedGraph({
     const max = d3.max(graph.nodes, n => n.sizeValue) ?? 1;
     return d3.scaleSqrt().domain([0, Math.max(max, 1)]).range([6, 30]);
   }, [graph.nodes]);
+
+  // Category nodes are sized by hierarchy depth instead of degree: a category
+  // that owns subcategories reads bigger than the ones it owns. The top level
+  // differs per file (H003 in one, H023 in another), so the ramp is derived
+  // from the levels actually present rather than from a fixed table. It starts
+  // at the degree scale's ceiling, so no category is ever smaller than a leaf.
+  const nodeRadius = useMemo(() => {
+    const present = graph.nodes
+      .map(n => nodeTiers?.get(n.id))
+      .filter((t): t is number => t !== undefined);
+    const maxTier = present.length ? Math.max(...present) : 0;
+
+    const FLOOR = 30; // top of the degree scale's range
+    const CEIL = 76;
+    const step = maxTier > 0 ? (CEIL - FLOOR) / maxTier : 0;
+
+    return (n: Node) => {
+      const tier = nodeTiers?.get(n.id);
+      if (tier === undefined) return sizeScale(n.sizeValue);
+      return FLOOR + step * tier;
+    };
+  }, [graph.nodes, nodeTiers, sizeScale]);
 
   const weightScale = useMemo(() => {
     const max = d3.max(graph.links, l => l.weight) ?? 1;
@@ -492,21 +694,79 @@ export default function DirectedGraph({
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
-      .on('zoom', (event) => g.attr('transform', event.transform));
+      .on('zoom', (event) => {
+        zoomTransformRef.current = event.transform;
+        g.attr('transform', event.transform);
+      });
     svg.call(zoom);
+    if (zoomTransformRef.current) {
+      svg.call(zoom.transform, zoomTransformRef.current);
+    }
+
+    // Reuse the last known position for every node that is still visible.
+    // Newly revealed triplets start beside their connected cluster instead of
+    // appearing at a random location, so expanding a message feels continuous.
+    const previousPositions = nodePositionsRef.current;
+    const anchoredNodes: Node[] = [];
+    for (const node of displayGraph.nodes) {
+      const positionedNode = node as Node & d3.SimulationNodeDatum;
+      const previous = previousPositions.get(node.id);
+      if (previous) {
+        positionedNode.x = previous.x;
+        positionedNode.y = previous.y;
+        anchoredNodes.push(positionedNode);
+        continue;
+      }
+
+      for (const link of displayGraph.links) {
+        const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+        const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+        const otherId = sourceId === node.id ? targetId : targetId === node.id ? sourceId : null;
+        if (!otherId) continue;
+        const other = previousPositions.get(otherId);
+        if (other) {
+          positionedNode.x = other.x;
+          positionedNode.y = other.y;
+          break;
+        }
+      }
+    }
 
     const initialSpread = spreadRef.current;
-    const sim = d3.forceSimulation<Node>(graph.nodes)
-      .force('link', d3.forceLink<Node, Link>(graph.links).id(d => d.id).distance(BASE_LINK_DISTANCE * initialSpread).strength(0.5))
+    const sim = d3.forceSimulation<Node>(displayGraph.nodes)
+      .force('link', d3.forceLink<Node, Link>(displayGraph.links).id(d => d.id).distance(BASE_LINK_DISTANCE * initialSpread).strength(0.5))
       .force('charge', d3.forceManyBody<Node>().strength(BASE_CHARGE_STRENGTH * initialSpread))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide<Node>().radius(n => sizeScale(n.sizeValue) + 4));
+      .force('collision', d3.forceCollide<Node>().radius(n => nodeRadius(n) + 4));
     simRef.current = sim;
+
+    // Keep the existing graph visually anchored while newly revealed triplets
+    // settle into place. Releasing the anchors after a short transition lets
+    // the normal force layout resume without making the whole graph jump.
+    let releaseAnchorsTimer: ReturnType<typeof setTimeout> | null = null;
+    if (anchoredNodes.length > 0) {
+      for (const node of anchoredNodes) {
+        const anchoredNode = node as Node & d3.SimulationNodeDatum;
+        anchoredNode.fx = anchoredNode.x;
+        anchoredNode.fy = anchoredNode.y;
+      }
+      sim.alpha(0.12).alphaDecay(0.08).restart();
+      releaseAnchorsTimer = setTimeout(() => {
+        for (const node of anchoredNodes) {
+          const anchoredNode = node as Node & d3.SimulationNodeDatum;
+          anchoredNode.fx = null;
+          anchoredNode.fy = null;
+        }
+        sim.alpha(0.08).restart();
+      }, 450);
+    } else {
+      sim.alpha(1).restart();
+    }
 
     const linkSel = g.append('g')
       .attr('class', 'links')
       .selectAll<SVGLineElement, Link>('line')
-      .data(graph.links)
+      .data(displayGraph.links)
       .join('line')
       .attr('stroke', '#9ca3af')
       .attr('stroke-opacity', 0.6) // initial; selection effect overrides per-edge
@@ -520,22 +780,22 @@ export default function DirectedGraph({
     const EDGE_LABEL_DENSITY_CAP = 500;
    /* Keeping incase conflict: Merge of code segment
       const showEdgeLabels = !!mapping.edgeLabelField &&
-      graph.links.some(l => l.label) &&
-      graph.links.length <= EDGE_LABEL_DENSITY_CAP;*/
-    const labelsAvailable = !!mapping.edgeLabelField && graph.links.some(l => l.label);
+      displayGraph.links.some(l => l.label) &&
+      displayGraph.links.length <= EDGE_LABEL_DENSITY_CAP;*/
+    const labelsAvailable = !!mapping.edgeLabelField && displayGraph.links.some(l => l.label);
     const showEdgeLabels = labelsAvailable && (
       edgeLabelMode === 'on'
         ? true
         : edgeLabelMode === 'off'
           ? false
-          : graph.links.length <= EDGE_LABEL_DENSITY_CAP
+          : displayGraph.links.length <= EDGE_LABEL_DENSITY_CAP
     );
 
     const labelSel = showEdgeLabels
       ? g.append('g')
           .attr('class', 'edge-labels')
           .selectAll<SVGTextElement, Link>('text')
-          .data(graph.links)
+          .data(displayGraph.links)
           .join('text')
           .text(l => l.label)
           .attr('text-anchor', 'middle')
@@ -552,12 +812,26 @@ export default function DirectedGraph({
     const nodeSel = g.append('g')
       .attr('class', 'nodes')
       .selectAll<SVGGElement, Node>('g')
-      .data(graph.nodes)
+      .data(displayGraph.nodes)
       .join('g')
       .style('cursor', 'pointer')
       .on('click', (event, d) => {
         event.stopPropagation();
         onNodeClick(d.id === selectedNode ? null : d.id);
+      })
+      .on('dblclick', (event, d) => {
+        event.stopPropagation();
+        if (nodeKinds?.get(d.id) === 'cluster') onClusterDoubleClick(d.id);
+        else if (nodeKinds?.get(d.id) === 'category') {
+          const childCategoryIds = graph.links.flatMap(link => {
+            const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+            const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+            if (sourceId === d.id && nodeKinds?.get(targetId) === 'category') return [targetId];
+            if (targetId === d.id && nodeKinds?.get(sourceId) === 'category') return [sourceId];
+            return [];
+          });
+          onCategoryDoubleClick(d.id, childCategoryIds);
+        }
       })
       .call(
         d3.drag<SVGGElement, Node>()
@@ -577,8 +851,8 @@ export default function DirectedGraph({
           })
       );
 
-    nodeSel.append('circle')
-      .attr('r', n => sizeScale(n.sizeValue))
+    nodeSel.append('path')
+      .attr('d', n => nodeGlyph(nodeKinds?.get(n.id), nodeRadius(n)))
       .attr('fill', n => nodeFill(n.id, n.colorKey))
       .attr('stroke', NODE_RING)
       .attr('stroke-width', 1);
@@ -591,7 +865,7 @@ export default function DirectedGraph({
     nodeSel.append('text')
       .text(n => displayLabel(n.id))
       .attr('text-anchor', 'middle')
-      .attr('dy', n => sizeScale(n.sizeValue) + 11)
+      .attr('dy', n => nodeRadius(n) + 11)
       .attr('font-size', 10)
       .attr('fill', '#e5e7eb')
       .attr('paint-order', 'stroke')
@@ -626,6 +900,9 @@ export default function DirectedGraph({
           lines.push(`${mapping.nodeColorField}: ${d.colorKey}`);
         }
         lines.push(`in: ${d.inDegree} · out: ${d.outDegree}`);
+        for (const detail of tooltipDetailsRef.current?.get(d.id) ?? []) {
+          lines.push(`<strong>${escapeHTML(detail.label)}:</strong> ${escapeHTML(detail.value).replace(/\n/g, '<br/>')}`);
+        }
         if (mapping.nodeSizeField && fieldsByName.get(mapping.nodeSizeField)?.type === 'number') {
           lines.push(`${mapping.nodeSizeField}: ${d.sizeValue}`);
         }
@@ -711,7 +988,7 @@ export default function DirectedGraph({
           const dx = (t.x ?? 0) - (s.x ?? 0);
           const dy = (t.y ?? 0) - (s.y ?? 0);
           const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const r = sizeScale(t.sizeValue) + ARROW_LEN + 1;
+          const r = nodeRadius(t) + ARROW_LEN + 1;
           // Safety: don't let the line invert when nodes overlap
           const offset = Math.min(r, dist);
           return (t.x ?? 0) - (dx / dist) * offset;
@@ -722,7 +999,7 @@ export default function DirectedGraph({
           const dx = (t.x ?? 0) - (s.x ?? 0);
           const dy = (t.y ?? 0) - (s.y ?? 0);
           const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          const r = sizeScale(t.sizeValue) + ARROW_LEN + 1;
+          const r = nodeRadius(t) + ARROW_LEN + 1;
           const offset = Math.min(r, dist);
           return (t.y ?? 0) - (dy / dist) * offset;
         });
@@ -747,11 +1024,18 @@ export default function DirectedGraph({
     });
 
     return () => {
+      if (releaseAnchorsTimer) clearTimeout(releaseAnchorsTimer);
+      for (const node of displayGraph.nodes) {
+        const positionedNode = node as Node & d3.SimulationNodeDatum;
+        if (typeof positionedNode.x === 'number' && typeof positionedNode.y === 'number') {
+          nodePositionsRef.current.set(node.id, { x: positionedNode.x, y: positionedNode.y });
+        }
+      }
       sim.stop();
       simRef.current = null;
       tooltip.remove();
     };
-  }, [graph, colorScale, nodeFill, sizeScale, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels]); // Kept edgeLabelMode
+  }, [displayGraph, colorScale, nodeFill, sizeScale, nodeRadius, weightScale, mapping, fields, fieldsByName, onNodeClick, edgeLabelMode, nodeLabels, onClusterDoubleClick, onCategoryDoubleClick]); // Kept edgeLabelMode
   // selectedNode handled by a separate effect below to avoid restarting the simulation on selection
 
   // Spread control — retune the existing simulation's link/charge forces
@@ -859,7 +1143,7 @@ export default function DirectedGraph({
     // slightly heavier white ring, which says "same thing, not the one you
     // clicked". A lit node is also never dimmed, or the feature would be
     // invisible in exactly the branches it exists to show.
-    svg.selectAll<SVGCircleElement, Node>('g.nodes g circle')
+    svg.selectAll<SVGPathElement, Node>('g.nodes g path')
       .attr('fill', d => isLit(d.id) ? SELECTION_FILL : nodeFill(d.id, d.colorKey))
       .attr('stroke', d => d.id === selectedNode ? SELECTION_RING : NODE_RING)
       .attr('stroke-width', d => d.id === selectedNode ? 3 : isLit(d.id) ? 2 : 1)
@@ -943,7 +1227,7 @@ export default function DirectedGraph({
         if (highlightedNodes) return (linkInHighlight(l) ? 0.9 : 0.05) * t;
         return 0.9 * t;
       });
-  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity, litNodes, nodeFill, graph]);
+  }, [selectedNode, highlightedNodes, highlightedEdgeKeys, nodeOpacity, litNodes, nodeFill, displayGraph]);
 
   // Legend for color scale
   const legendItems = useMemo(() => {
@@ -956,9 +1240,9 @@ export default function DirectedGraph({
       <svg ref={svgRef} className="w-full h-full bg-gray-950" />
       <div className="absolute top-2 left-2 bg-gray-900/70 backdrop-blur-sm rounded px-3 py-2 text-xs">
         <div className="text-gray-400">
-          {graph.nodes.length} nodes · {graph.links.length} edges
+          {displayGraph.nodes.length} nodes · {displayGraph.links.length} edges
         </div>
-        {mapping.edgeLabelField && graph.links.length > 500 && (
+        {mapping.edgeLabelField && displayGraph.links.length > 500 && (
           <div className="text-amber-400/80 text-[10px] mt-1">
             edge labels auto-hidden ({'>'}500 edges) — toggle "on" in Layout to force
           </div>

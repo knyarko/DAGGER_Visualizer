@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FileUpload from './FileUpload';
 import FieldMapper from './FieldMapper';
 import FilterPanel from './FilterPanel';
-import DirectedGraph, { type DaggerNodeKind, type NodeThumbnail } from './DirectedGraph';
+import DirectedGraph, { type DaggerNodeKind, type NodeThumbnail, type NodeTooltipDetail } from './DirectedGraph';
 import NodeMedia from './NodeMedia';
-import { daggerNodeHandling, daggerNodeMedia, daggerVisibleSubgraph, daggerWarningTags, isCategoryNode, isClusterNode, isTripletNode, type DatasetOption } from '../../lib/parseData';
+import { daggerNodeHandling, daggerNodeMedia, daggerNodeTier, daggerVisibleSubgraph, daggerWarningTags, isCategoryNode, isClusterNode, isTripletNode, type DatasetOption } from '../../lib/parseData';
 import type { DaggerNode } from '../../types';
 import { MEDIA_ROOTS, mediaCandidates } from '../../lib/mediaConfig';
 import { isRecordConcealed, type ContentOverride } from '../../lib/contentBlur';
@@ -184,6 +184,79 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   const fadeWindowMs = useMemo(() => fadeDurationToMs(fadeDuration), [fadeDuration]);
   // Edge label visibility: 'auto' (show below density cap), 'on', or 'off'.
   const [edgeLabelMode, setEdgeLabelMode] = useState<'auto' | 'on' | 'off'>('auto');
+
+  // Triplet visibility: all triplets are shown by default. A viewer can hide
+  // every triplet at once, or collapse/expand an individual message cluster.
+  const [hideAllTriplets, setHideAllTriplets] = useState(false);
+  const [collapsedClusterNodes, setCollapsedClusterNodes] = useState<Set<string>>(new Set());
+  const [expandedClusterNodes, setExpandedClusterNodes] = useState<Set<string>>(new Set());
+  const [hideAllMessages, setHideAllMessages] = useState(false);
+  const [collapsedCategoryNodes, setCollapsedCategoryNodes] = useState<Set<string>>(new Set());
+  const [expandedCategoryNodes, setExpandedCategoryNodes] = useState<Set<string>>(new Set());
+
+  const setAllMessagesVisible = useCallback((visible: boolean) => {
+    setHideAllMessages(!visible);
+    setCollapsedCategoryNodes(new Set());
+    setExpandedCategoryNodes(new Set());
+  }, []);
+
+  const toggleCategoryMessages = useCallback((id: string, childCategoryIds: string[] = []) => {
+    if (hideAllMessages) {
+      setExpandedCategoryNodes(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else {
+          next.add(id);
+          childCategoryIds.forEach(childId => next.delete(childId));
+        }
+        return next;
+      });
+      return;
+    }
+
+    setCollapsedCategoryNodes(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        childCategoryIds.forEach(childId => next.add(childId));
+      } else next.add(id);
+      return next;
+    });
+  }, [hideAllMessages]);
+
+  const setAllTripletsVisible = useCallback((visible: boolean) => {
+    setHideAllTriplets(!visible);
+    setCollapsedClusterNodes(new Set());
+    setExpandedClusterNodes(new Set());
+  }, []);
+
+  const toggleClusterTriplets = useCallback((id: string) => {
+    if (hideAllTriplets) {
+      setExpandedClusterNodes(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      return;
+    }
+
+    setCollapsedClusterNodes(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, [hideAllTriplets]);
+
+  useEffect(() => {
+    setHideAllTriplets(false);
+    setCollapsedClusterNodes(new Set());
+    setExpandedClusterNodes(new Set());
+    setHideAllMessages(false);
+    setCollapsedCategoryNodes(new Set());
+    setExpandedCategoryNodes(new Set());
+  }, [selectedOptionId]);
   // ── HANDLING tier (VT003) ──────────────────────────────────────────────────
   // The viewer's REVEAL THRESHOLD. Content whose `sensitivity` is at or below it
   // is shown; everything above it stays blurred until the viewer reveals that
@@ -500,6 +573,20 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     return kinds;
   }, [dagger]);
 
+  // Category depth, for size. `nodeKinds` answers "what is this node" and
+  // collapses H000/H001/… into one 'category'; this keeps the level, which is
+  // what the hierarchy ramp needs. Cluster and triplet nodes have no tier and
+  // are absent from the map, so their size is left to the degree scale.
+  const nodeTiers = useMemo<Map<string, number> | null>(() => {
+    if (!dagger) return null;
+    const tiers = new Map<string, number>();
+    for (const [id, node] of dagger.nodesById) {
+      const t = daggerNodeTier(node);
+      if (t !== null) tiers.set(id, t);
+    }
+    return tiers;
+  }, [dagger]);
+
   // ── AA047: what lights up when you click ───────────────────────────────────
   // The clicked node, plus every OTHER node that is the same thing — the same
   // `triplet_id` on a triplet, the same `cluster_id` on a cluster. That is the
@@ -537,8 +624,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   // ── AA052: node id → its hover thumbnail, and whether it is concealed ──────
   //
   // IMAGE ONLY. The tooltip is an HTML surface with `pointer-events: none` that
-  // clears on `mouseout`, so audio and video controls could not be operated in
-  // it and a reveal button could not be clicked. A node with no image entry —
+  // clears on `mouseout`, so audio and video controls could not be operated
+  // in it and a reveal button could not be clicked. A node with no image entry —
   // every cluster, every category, and every one of the fixture's seven
   // audio-only triplets — is simply absent from this map and keeps the tooltip
   // it has always had.
@@ -556,6 +643,59 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   //
   // Recomputed whenever the threshold, the override or that reveal changes, on
   // a map the size of the node count. The DAGGER fixture is 118 nodes.
+  // Node hover content: preserve the source field names while surfacing the
+  // triplet relationship, message text, modality, and text/transcript fields.
+  const nodeTooltipDetails = useMemo<Map<string, NodeTooltipDetail[]> | null>(() => {
+    if (!dagger) return null;
+    const details = new Map<string, NodeTooltipDetail[]>();
+    const preferredKeys = /^(subject|predicate|object|modality|message|message_text|msg_text|text|triplet_text)$/i;
+    const contentKey = /(transcript|caption|ocr|speech|audio_text|image_text|video_text|background_sound|translation|description|message|msg_text|triplet_text)/i;
+    const asText = (value: unknown): string => {
+      if (typeof value === 'string') return value.trim();
+      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+      if (Array.isArray(value)) return value.map(asText).filter(Boolean).join(' | ');
+      return '';
+    };
+    for (const [id, node] of dagger.nodesById) {
+      const record = node as unknown as Record<string, unknown>;
+      const nodeDetails: NodeTooltipDetail[] = [];
+      const seen = new Set<string>();
+      const subject = asText(record.subject);
+      const predicate = asText(record.predicate);
+      const object = asText(record.object);
+      if (subject && object) nodeDetails.push({ label: 'Subject → Object', value: `${subject} → ${object}` });
+      if (predicate) nodeDetails.push({ label: 'Predicate', value: predicate });
+      if (subject) seen.add('subject');
+      if (predicate) seen.add('predicate');
+      if (object) seen.add('object');
+      if (asText(record.modality)) seen.add('modality');
+      for (const [key, value] of Object.entries(record)) {
+        if (!preferredKeys.test(key) && !contentKey.test(key)) continue;
+        const text = asText(value);
+        if (!text || seen.has(key.toLowerCase())) continue;
+        nodeDetails.push({ label: key.replace(/_/g, ' '), value: text });
+        seen.add(key.toLowerCase());
+      }
+      for (const media of daggerNodeMedia(node)) {
+        const mediaRecord = media as unknown as Record<string, unknown>;
+        const channel = asText(mediaRecord.channel);
+        if (channel) {
+          if (!seen.has('modality')) {
+            nodeDetails.push({ label: 'modality', value: channel });
+            seen.add('modality');
+          }
+        }
+        for (const [key, value] of Object.entries(mediaRecord)) {
+          if (!contentKey.test(key)) continue;
+          const text = asText(value);
+          if (text) nodeDetails.push({ label: `${channel || 'media'} ${key.replace(/_/g, ' ')}`, value: text });
+        }
+      }
+      if (nodeDetails.length > 0) details.set(id, nodeDetails);
+    }
+    return details.size > 0 ? details : null;
+  }, [dagger]);
+
   const nodeThumbnails = useMemo<Map<string, NodeThumbnail> | null>(() => {
     if (!dagger) return null;
     const thumbs = new Map<string, NodeThumbnail>();
@@ -685,14 +825,6 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     return (
       <div className="relative">
         <FileUpload onLoaded={handleLoaded} />
-        {onSwitchMode && (
-          <button
-            onClick={onSwitchMode}
-            className="absolute top-4 right-4 text-xs text-gray-400 hover:text-white px-3 py-1.5 border border-gray-700 rounded"
-          >
-            Open Epstein viewer →
-          </button>
-        )}
       </div>
     );
   }
@@ -704,15 +836,6 @@ export default function DataExplorer({ onSwitchMode }: Props) {
         <div className="p-3 border-b border-gray-800">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-sm font-bold">Network Explorer</h1>
-            {onSwitchMode && (
-              <button
-                onClick={onSwitchMode}
-                className="text-[10px] text-gray-400 hover:text-white"
-                title="Switch to original Epstein viewer"
-              >
-                Epstein →
-              </button>
-            )}
           </div>
           <div className="text-xs text-gray-400 truncate" title={sourceFileName}>
             📄 {sourceFileName}
@@ -778,6 +901,70 @@ export default function DataExplorer({ onSwitchMode }: Props) {
         )}
 
         <div className="overflow-y-auto p-3 flex-1 space-y-4">
+          {/* AA047: node glyph + colour legend */}
+          {dagger && (
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 border-b border-gray-700 pb-2 mb-3">
+                Node legend
+              </h2>
+              <div className="rounded p-2 bg-gray-800/40">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                      <polygon
+                        points="9,1 17,9 9,17 1,9"
+                        fill="#fb7185"
+                        stroke="#fff"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-200">Triplet</span>
+                    <span className="text-[10px] text-gray-500">light red</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                      <rect
+                        x="2"
+                        y="2"
+                        width="14"
+                        height="14"
+                        fill="#c084fc"
+                        stroke="#fff"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-200">Message</span>
+                    <span className="text-[10px] text-gray-500">purple</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                      <polygon
+                        points="4,2 14,2 17,9 14,16 4,16 1,9"
+                        fill="#94a3b8"
+                        stroke="#fff"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                    <span className="text-xs text-gray-200">Category</span>
+                    <span className="text-[10px] text-gray-500">grey</span>
+                  </div>
+                </div>
+
+                {mapping.nodeColorField ? (
+                  <div className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-700">
+                    Tier colors shown here are the defaults. The mapped node-color field overrides them.
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-700">
+                    Glyphs show the DAGGER tier; colors identify the same tier.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Visual layout controls */}
           <div>
             <div className="flex items-center justify-between mb-3 border-b border-gray-700 pb-2">
@@ -811,6 +998,78 @@ export default function DataExplorer({ onSwitchMode }: Props) {
               </div>
             </div>
           </div>
+
+          {/* Triplet visibility */}
+          {dagger && (
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 border-b border-gray-700 pb-2 mb-3">
+                Triplets
+              </h2>
+              <div className="rounded p-2 bg-gray-800/40">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => setAllTripletsVisible(true)}
+                    aria-pressed={!hideAllTriplets && collapsedClusterNodes.size === 0}
+                    title="Show every triplet in the graph."
+                    className={`px-2 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
+                      !hideAllTriplets && collapsedClusterNodes.size === 0
+                        ? 'bg-blue-600 border-blue-400 text-white'
+                        : 'bg-gray-800/60 border-gray-700 text-gray-300 hover:border-gray-500'
+                    }`}
+                  >
+                    Show All
+                  </button>
+                  <button
+                    onClick={() => setAllTripletsVisible(false)}
+                    aria-pressed={hideAllTriplets}
+                    title="Hide every triplet. Double-click a message node to expand just that message."
+                    className={`px-2 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
+                      hideAllTriplets
+                        ? 'bg-blue-600 border-blue-400 text-white'
+                        : 'bg-gray-800/60 border-gray-700 text-gray-300 hover:border-gray-500'
+                    }`}
+                  >
+                    Hide All
+                  </button>
+                </div>
+                <div className="text-[10px] text-gray-500 mt-1.5">
+                  Double-click a Message node to expand or collapse its triplets.
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-700">
+                  <div className="text-xs font-semibold text-gray-300 mb-1.5">Messages</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      onClick={() => setAllMessagesVisible(true)}
+                      aria-pressed={!hideAllMessages && collapsedCategoryNodes.size === 0}
+                      title="Show every message node and its triplets, subject to the Triplets toggle."
+                      className={`px-2 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
+                        !hideAllMessages && collapsedCategoryNodes.size === 0
+                          ? 'bg-blue-600 border-blue-400 text-white'
+                          : 'bg-gray-800/60 border-gray-700 text-gray-300 hover:border-gray-500'
+                      }`}
+                    >
+                      Show All
+                    </button>
+                    <button
+                      onClick={() => setAllMessagesVisible(false)}
+                      aria-pressed={hideAllMessages}
+                      title="Hide every message node. Double-click a category to expand its messages."
+                      className={`px-2 py-1.5 rounded text-[11px] font-semibold border transition-colors ${
+                        hideAllMessages
+                          ? 'bg-blue-600 border-blue-400 text-white'
+                          : 'bg-gray-800/60 border-gray-700 text-gray-300 hover:border-gray-500'
+                      }`}
+                    >
+                      Hide All
+                    </button>
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-1.5">
+                    Double-click a Category node to expand or collapse its messages.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Edge labels: auto (show below density cap) / on / off */}
           <div>
@@ -1212,10 +1471,20 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           nodeOpacity={nodeOpacity}
           nodeLabels={nodeLabels}
           nodeKinds={nodeKinds}
+          nodeTiers={nodeTiers}
           litNodes={litNodes}
           nodeThumbnails={nodeThumbnails}
+          nodeTooltipDetails={nodeTooltipDetails}
           spread={spread}
           edgeLabelMode={edgeLabelMode}
+          hideAllTriplets={hideAllTriplets}
+          collapsedClusterNodes={collapsedClusterNodes}
+          expandedClusterNodes={expandedClusterNodes}
+          onClusterDoubleClick={toggleClusterTriplets}
+          hideAllMessages={hideAllMessages}
+          collapsedCategoryNodes={collapsedCategoryNodes}
+          expandedCategoryNodes={expandedCategoryNodes}
+          onCategoryDoubleClick={toggleCategoryMessages}
         />
       </main>
 
