@@ -12,6 +12,7 @@ import { suggestMapping, type FilterMap, type VisualMapping } from '../../lib/ma
 import { enumerateChains, reachableWithin, chainToEdgeKeys } from '../../lib/chains';
 import { buildLabel, BUILD_SHA_FULL, BUILD_TIME } from '../../lib/buildInfo';
 import { computeTimeRange, buildOpacityMap, buildRowDateLookup, formatCursor, fadeDurationToMs, DEFAULT_FADE_DURATION, MS_PER_MINUTE, type FadeDuration } from '../../lib/timeline';
+import { GraphChatView } from '../graphchat';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -130,6 +131,8 @@ export default function DataExplorer({ onSwitchMode }: Props) {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showMapper, setShowMapper] = useState(false);
   const [showSourcePicker, setShowSourcePicker] = useState(false);
+  // AA065 - whether the wide "Ask about this graph" view is the one on screen.
+  const [askMode, setAskMode] = useState(false);
   const [kCore, setKCore] = useState(0);
   const [chainDepth, setChainDepth] = useState(0);
   const [chainDirection, setChainDirection] = useState<'downstream' | 'upstream'>('downstream');
@@ -745,6 +748,25 @@ export default function DataExplorer({ onSwitchMode }: Props) {
     );
   }
 
+  // AA065 - the wide view is a MODE of this shell, not a separate front door.
+  // It is reached from a graph that is ALREADY LOADED and is handed that
+  // graph's parsed index, its media roots and the viewer's conceal settings, so
+  // nobody picks the same file twice and a conceal setting cannot be lost in
+  // the switch. Everything it needs is already in this component's state; it
+  // adds no load, no fetch and no second parse.
+  if (askMode && dagger) {
+    return (
+      <GraphChatView
+        dagger={dagger}
+        graphLabel={sourceFileName}
+        roots={MEDIA_ROOTS}
+        revealThreshold={revealThreshold}
+        contentOverride={contentOverride}
+        onBack={() => setAskMode(false)}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen bg-gray-900 text-white">
       {/* Left sidebar: dataset info + source picker + filters */}
@@ -756,6 +778,15 @@ export default function DataExplorer({ onSwitchMode }: Props) {
           <div className="text-xs text-gray-400 truncate" title={sourceFileName}>
             📄 {sourceFileName}
           </div>
+          <button
+            type="button"
+            className="gc-btn"
+            style={{ marginTop: 8, width: '100%' }}
+            disabled={!dagger}
+            onClick={() => setAskMode(true)}
+          >
+            {dagger ? 'Ask about this graph' : 'Load a graph to ask about it'}
+          </button>
           <div className="text-[10px] text-gray-500 mt-1">
             {dataset.rows.length} rows · {dataset.fields.length} fields ·
             {' '}{visibleRows.length} after filters
