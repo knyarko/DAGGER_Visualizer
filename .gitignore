@@ -11,6 +11,7 @@ network-ui/build/
 .env
 .env.local
 .env.production
+process.env
 venv/
 
 # Database files (but keep the main database)
@@ -83,3 +84,10 @@ network-ui/ai-war-notes/
 # running the viewer, so it is local-only; mediaRoots.example.json is the
 # committed template.
 network-ui/src/lib/mediaRoots.json
+
+# Team working notes and the team's own staging area for removals.
+# Local-only, same reasoning as war-notes/ above: the sprint's record is the
+# commits, not the notes behind them. Ignored rather than merely untracked so a
+# single `git add -A` cannot sweep them into the remote.
+ai_notes/
+_to_delete/
