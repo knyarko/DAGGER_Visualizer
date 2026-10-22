@@ -5,6 +5,48 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>network-ui</title>
+    <!--
+      THEME, RESOLVED BEFORE FIRST PAINT.
+
+      This has to be a blocking inline script in the head and it cannot be a
+      module: the application entry is a deferred module script, which runs
+      after the document has been parsed and may be painted, and a theme
+      applied after hydration is a white flash on every load for every
+      dark-theme viewer.
+
+      The resolution order is the viewer's stored choice, then the operating
+      system preference, then dark. The same order exists in the view's theme
+      module, and the storage key below is the seam between the two: it is a
+      literal in both and the two must stay identical.
+
+      localStorage throws in a private window, so every access is wrapped. On
+      a throw the theme resolves to dark and the control still works for the
+      session.
+
+      `colorScheme` is set as well as the attribute, so form controls,
+      scrollbars and the caret follow the theme instead of staying light.
+    -->
+    <script>
+      (function () {
+        var KEY = 'dagger.graphchat.theme';
+        var theme = null;
+        try {
+          var stored = window.localStorage.getItem(KEY);
+          if (stored === 'dark' || stored === 'light') theme = stored;
+        } catch (e) {
+          theme = null;
+        }
+        if (theme === null) {
+          try {
+            theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          } catch (e) {
+            theme = 'dark';
+          }
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

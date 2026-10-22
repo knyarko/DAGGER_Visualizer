@@ -1,0 +1,29 @@
+{
+  "_comment": "A constructed corpus for the one case neither sample corpus contains: ONE message (cluster_id CLU9) delivered as TWO rows (record_id ROW1, ROW2) because it carried two attachments. The data dictionary: record_id is 'one per row, so a message with two attachments gets two'; cluster_id is 'the originating MESSAGE, shared by every row and every triplet that came out of it'. Keyed on record_id this message is two groups and its twelve dead are stated twice. Keyed on cluster_id it is one. Run graph-chat/engine/bench/idcheck.py over this file to see the two keys disagree.",
+  "nodes": [
+    {
+      "node": "tw1_0001", "hierarchy": "TRIPLET", "triplet_id": "TW1",
+      "cluster_id": "CLU9", "record_id": "ROW1", "category": "Casualties",
+      "subject": "the blast", "predicate": "killed", "object": "12 people",
+      "label": "the blast → killed → 12 people",
+      "msg_text": "The blast killed 12 people.",
+      "media": [{ "channel": "image", "path": "img/row1.jpg", "description": "rubble and smoke" }]
+    },
+    {
+      "node": "tw2_0001", "hierarchy": "TRIPLET", "triplet_id": "TW2",
+      "cluster_id": "CLU9", "record_id": "ROW2", "category": "Casualties",
+      "subject": "the blast", "predicate": "caused", "object": "12 deaths",
+      "label": "the blast → caused → 12 deaths",
+      "msg_text": "The blast killed 12 people.",
+      "media": [{ "channel": "image", "path": "img/row2.jpg", "description": "a collapsed wall" }]
+    },
+    {
+      "node": "casualties_h000", "hierarchy": "H000", "label": "Casualties",
+      "category": "Casualties", "tier": 0
+    }
+  ],
+  "edges": [
+    { "source": "tw1_0001", "target": "clu9_0001", "hierarchy_link": "TRIPLET_to_CLUSTER", "predicate": "killed" },
+    { "source": "tw2_0001", "target": "clu9_0001", "hierarchy_link": "TRIPLET_to_CLUSTER", "predicate": "caused" }
+  ]
+}
